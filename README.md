@@ -6,6 +6,10 @@ ANZUBA é uma extensão de navegador que evoluirá para um sistema operacional v
 
 O projeto será desenvolvido em 275 etapas, com cada etapa sendo implementada, testada e aprovada antes da próxima.
 
+### Etapa 17/275 — Monitoramento da conversa
+
+O ANZUBA agora consegue acompanhar mudanças estruturais na conversa. Cada adaptador pode obter um identificador da conversa, gerar um snapshot das mensagens e observar alterações no histórico. O comando `ai.conversation.observe` mantém esse monitoramento ativo e emite `ai:conversation-changed` quando o conteúdo muda. O monitoramento pode ser encerrado com o mesmo comando usando `enabled: false`.
+
 ### Etapa 16/275 — Contexto da conversa
 
 O ANZUBA agora consegue montar um contexto estruturado da conversa atual. Além das respostas da IA, o sistema identifica mensagens do usuário e da IA, preserva a ordem encontrada e inclui informações básicas da página e da IA ativa. O comando `ai.conversation.context` disponibiliza esse contexto para os próximos módulos, permitindo que o ANZUBA trabalhe com a conversa atual sem depender diretamente da estrutura interna de cada site.
