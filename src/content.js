@@ -41,6 +41,7 @@
   }
 
   updateDetection();
+  window.ANZUBA_PROJECTS?.getAll();
 
   let lastUrl = location.href;
   const observer = new MutationObserver(() => {
