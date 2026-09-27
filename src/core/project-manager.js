@@ -84,6 +84,19 @@
     return getProjectSummary(state.projects.find(project => project.id === id) || null);
   }
 
+  async function getChatMessages(projectId = state.activeId) {
+    const project = state.projects.find(item => item.id === projectId);
+    const chat = project?.data?.chat;
+    if (!chat) return null;
+
+    return {
+      conversationId: chat.conversationId || "current",
+      ai: chat.ai || null,
+      messageCount: Number(chat.messageCount || 0),
+      messages: Array.isArray(chat.messages) ? [...chat.messages] : []
+    };
+  }
+
   function getChatState(projectId = state.activeId) {
     const project = state.projects.find(item => item.id === projectId);
     return project?.data?.chat ? { ...project.data.chat } : null;
@@ -103,6 +116,11 @@
       title: page?.title || document.title,
       conversationId: conversation?.conversationId || page?.conversationId || "current",
       messageCount: conversation?.messageCount ?? 0,
+      messages: Array.isArray(conversation?.messages) ? conversation.messages.map(message => ({
+        id: message.id,
+        role: message.role,
+        text: message.text
+      })) : [],
       updatedAt: new Date().toISOString()
     };
 
@@ -251,6 +269,9 @@
   );
   window.ANZUBA_AI_BRIDGE?.on("chat.state", ({ id } = {}) =>
     getChatState(id || state.activeId)
+  );
+  window.ANZUBA_AI_BRIDGE?.on("chat.messages", ({ id } = {}) =>
+    getChatMessages(id || state.activeId)
   );
   window.ANZUBA_AI_BRIDGE?.on("chat.bind", ({ id } = {}) =>
     syncChatState(id || state.activeId)
