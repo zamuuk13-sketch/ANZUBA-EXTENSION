@@ -153,6 +153,54 @@
     };
   }
 
+  function getConversationId() {
+    const url = new URL(location.href);
+    const parts = url.pathname.split("/").filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : "current";
+  }
+
+  function getConversationSnapshot() {
+    const context = getConversationContext();
+    return {
+      conversationId: getConversationId(),
+      ai: context.ai,
+      url: context.url,
+      messageCount: context.messages.length,
+      messages: context.messages.map((message, index) => ({
+        id: message.role + "_" + index + "_" + message.text.length,
+        role: message.role,
+        text: message.text
+      }))
+    };
+  }
+
+  function observeConversation(onChange) {
+    if (typeof onChange !== "function") {
+      throw new Error("Callback inválido.");
+    }
+
+    let previous = JSON.stringify(getConversationSnapshot());
+
+    const scan = () => {
+      const snapshot = getConversationSnapshot();
+      const current = JSON.stringify(snapshot);
+      if (current === previous) return;
+      previous = current;
+      onChange(snapshot);
+    };
+
+    scan();
+
+    const observer = new MutationObserver(scan);
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+
+    return () => observer.disconnect();
+  }
+
   function observeMessages(onMessage) {
     if (typeof onMessage !== "function") {
       throw new Error("Callback inválido.");
@@ -208,6 +256,9 @@
     sendMessage,
     findMessages,
     getConversationContext,
+    getConversationId,
+    getConversationSnapshot,
+    observeConversation,
     observeMessages,
     getSupported: () => Object.values(adapters).map(({ id, name }) => ({ id, name }))
   };
@@ -223,6 +274,21 @@
   window.ANZUBA_AI_BRIDGE?.on("ai.adapter.inspect", () => inspect());
   window.ANZUBA_AI_BRIDGE?.on("ai.message.list", () => findMessages());
   window.ANZUBA_AI_BRIDGE?.on("ai.conversation.context", () => getConversationContext());
+  window.ANZUBA_AI_BRIDGE?.on("ai.conversation.snapshot", () => getConversationSnapshot());
+  window.ANZUBA_AI_BRIDGE?.on("ai.conversation.observe", ({ enabled = true }) => {
+    if (!enabled) {
+      window.__ANZUBA_AI_CONVERSATION_STOP__?.();
+      window.__ANZUBA_AI_CONVERSATION_STOP__ = null;
+      return { observing: false };
+    }
+
+    window.__ANZUBA_AI_CONVERSATION_STOP__?.();
+    window.__ANZUBA_AI_CONVERSATION_STOP__ = observeConversation((snapshot) => {
+      window.ANZUBA_AI_BRIDGE?.emit("ai:conversation-changed", { snapshot });
+    });
+
+    return { observing: true };
+  });
 
   window.ANZUBA_AI_BRIDGE?.on("ai.message.observe", ({ enabled = true }) => {
     if (!enabled) return { observing: false };
