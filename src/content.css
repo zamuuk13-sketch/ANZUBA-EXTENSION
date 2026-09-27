@@ -133,3 +133,6 @@
   cursor: pointer;
   font-weight: 650;
 }
+.anzuba-project-button[data-active="true"] { font-weight: 700; }
+.anzuba-project-item[data-active="true"] { font-weight: 700; background: color-mix(in srgb, var(--anzuba-host-text, #666) 8%, transparent); }
+.anzuba-project-empty { padding: 9px; font-size: 12px; opacity: .6; }
