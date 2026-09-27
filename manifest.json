@@ -32,6 +32,7 @@
         "src/core/resource-manager.js",
         "src/core/environment-manager.js",
         "src/core/ai-bridge.js",
+        "src/core/ai-adapters.js",
         "src/content.js"
       ],
       "css": [
