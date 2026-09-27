@@ -6,6 +6,10 @@ ANZUBA é uma extensão de navegador que evoluirá para um sistema operacional v
 
 O projeto será desenvolvido em 275 etapas, com cada etapa sendo implementada, testada e aprovada antes da próxima.
 
+### Etapa 20/275 — Estado unificado da integração com a IA
+
+O ANZUBA agora possui um estado unificado da integração atual. O comando `ai.integration.status` reúne em uma única resposta a IA detectada, conexão, capacidades disponíveis, estado da página e snapshot da conversa. Isso cria um ponto único para os módulos seguintes consultarem o estado da integração sem precisar conhecer os detalhes dos adaptadores.
+
 ### Etapa 19/275 — Descoberta de capacidades da IA
 
 O ANZUBA agora consegue consultar quais recursos de integração estão disponíveis na IA detectada. O comando `ai.capabilities` informa, de forma padronizada, se o adaptador consegue enviar mensagens, ler a conversa, observar mudanças na conversa e acompanhar mudanças da página. Isso permite que os próximos módulos decidam o que podem executar sem depender de verificações específicas de cada site.
