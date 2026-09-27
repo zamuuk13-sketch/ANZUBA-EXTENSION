@@ -67,6 +67,23 @@
     return true;
   }
 
+  function getProjectSummary(project) {
+    if (!project) return null;
+    return {
+      id: project.id,
+      name: project.name,
+      ai: project.ai || null,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+      hasData: !!project.data,
+      dataKeys: project.data ? Object.keys(project.data) : []
+    };
+  }
+
+  function getProjectSummaryById(id) {
+    return getProjectSummary(projects.find(project => project.id === id) || null);
+  }
+
   function getActiveProject() {
     return state.projects.find(project => project.id === state.activeId) || null;
   }
@@ -200,6 +217,10 @@
     launcher.append(button, arrow, menu);
     document.documentElement.appendChild(launcher);
   }
+
+  window.ANZUBA_AI_BRIDGE?.on("project.summary", ({ id } = {}) =>
+    id ? getProjectSummaryById(id) : getProjectSummary(getActiveProject())
+  );
 
   window.ANZUBA_PROJECTS = {
     getAll: () => [...state.projects],
