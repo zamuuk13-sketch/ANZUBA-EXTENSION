@@ -81,7 +81,35 @@
   }
 
   function getProjectSummaryById(id) {
-    return getProjectSummary(projects.find(project => project.id === id) || null);
+    return getProjectSummary(state.projects.find(project => project.id === id) || null);
+  }
+
+  function getChatState(projectId = state.activeId) {
+    const project = state.projects.find(item => item.id === projectId);
+    return project?.data?.chat ? { ...project.data.chat } : null;
+  }
+
+  async function syncChatState(projectId = state.activeId) {
+    const project = state.projects.find(item => item.id === projectId);
+    if (!project) return null;
+
+    const page = window.ANZUBA_AI_ADAPTERS?.getPageState?.() || null;
+    const conversation = window.ANZUBA_AI_ADAPTERS?.getConversationSnapshot?.() || null;
+    const ai = window.ANZUBA_AI_DETECTOR?.detect?.() || null;
+
+    const chat = {
+      ai: ai ? { id: ai.id, name: ai.name } : null,
+      url: page?.url || location.href,
+      title: page?.title || document.title,
+      conversationId: conversation?.conversationId || page?.conversationId || "current",
+      messageCount: conversation?.messageCount ?? 0,
+      updatedAt: new Date().toISOString()
+    };
+
+    project.data = { ...(project.data || {}), chat };
+    project.updatedAt = chat.updatedAt;
+    await saveProjects();
+    return { ...chat };
   }
 
   function getActiveProject() {
@@ -221,6 +249,15 @@
   window.ANZUBA_AI_BRIDGE?.on("project.summary", ({ id } = {}) =>
     id ? getProjectSummaryById(id) : getProjectSummary(getActiveProject())
   );
+  window.ANZUBA_AI_BRIDGE?.on("chat.state", ({ id } = {}) =>
+    getChatState(id || state.activeId)
+  );
+  window.ANZUBA_AI_BRIDGE?.on("chat.bind", ({ id } = {}) =>
+    syncChatState(id || state.activeId)
+  );
+
+  window.addEventListener("ai:conversation-changed", () => { syncChatState().catch(() => {}); });
+  window.addEventListener("ai:page-changed", () => { syncChatState().catch(() => {}); });
 
   window.ANZUBA_PROJECTS = {
     getAll: () => [...state.projects],
