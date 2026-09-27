@@ -6,6 +6,10 @@ ANZUBA é uma extensão de navegador que evoluirá para um sistema operacional v
 
 O projeto será desenvolvido em 275 etapas, com cada etapa sendo implementada, testada e aprovada antes da próxima.
 
+### Etapa 19/275 — Descoberta de capacidades da IA
+
+O ANZUBA agora consegue consultar quais recursos de integração estão disponíveis na IA detectada. O comando `ai.capabilities` informa, de forma padronizada, se o adaptador consegue enviar mensagens, ler a conversa, observar mudanças na conversa e acompanhar mudanças da página. Isso permite que os próximos módulos decidam o que podem executar sem depender de verificações específicas de cada site.
+
 ### Etapa 18/275 — Estado e navegação da IA
 
 O ANZUBA agora acompanha o estado da página da IA, incluindo URL, título, conversa atual e quantidade de mensagens. O sistema detecta mudanças de rota em aplicações SPA (`pushState`, `replaceState` e `popstate`) e também alterações relevantes da página. Foram adicionados `ai.page.state` e `ai.page.observe`, com o evento `ai:page-changed`, permitindo que o núcleo saiba quando a IA mudou de conversa ou rota sem depender de recarregamento completo.
