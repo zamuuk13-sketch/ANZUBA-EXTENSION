@@ -131,6 +131,45 @@
     throw new Error("Não foi possível enviar a mensagem.");
   }
 
+  function findMessages() {
+    const candidates = Array.from(document.querySelectorAll(
+      '[data-message-author-role="assistant"], [data-message-author-role="model"], [data-testid*="assistant" i], [data-testid*="model" i]'
+    ));
+
+    return candidates.map((element, index) => ({
+      index,
+      role: element.getAttribute("data-message-author-role") || "assistant",
+      text: (element.innerText || element.textContent || "").trim()
+    })).filter(message => message.text);
+  }
+
+  function observeMessages(onMessage) {
+    if (typeof onMessage !== "function") {
+      throw new Error("Callback inválido.");
+    }
+
+    let lastText = "";
+    const scan = () => {
+      const messages = findMessages();
+      const latest = messages[messages.length - 1];
+      if (!latest || latest.text === lastText) return;
+
+      lastText = latest.text;
+      onMessage(latest);
+    };
+
+    scan();
+
+    const observer = new MutationObserver(scan);
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+
+    return () => observer.disconnect();
+  }
+
   function inspect() {
     const adapter = getAdapter();
     const composer = adapter?.findComposer?.() || null;
@@ -157,6 +196,8 @@
     inspect,
     setComposerValue,
     sendMessage,
+    findMessages,
+    observeMessages,
     getSupported: () => Object.values(adapters).map(({ id, name }) => ({ id, name }))
   };
 
@@ -169,4 +210,19 @@
   });
 
   window.ANZUBA_AI_BRIDGE?.on("ai.adapter.inspect", () => inspect());
+  window.ANZUBA_AI_BRIDGE?.on("ai.message.list", () => findMessages());
+
+  window.ANZUBA_AI_BRIDGE?.on("ai.message.observe", ({ enabled = true }) => {
+    if (!enabled) return { observing: false };
+
+    if (window.__ANZUBA_AI_MESSAGE_STOP__) {
+      window.__ANZUBA_AI_MESSAGE_STOP__();
+    }
+
+    window.__ANZUBA_AI_MESSAGE_STOP__ = observeMessages((message) => {
+      window.ANZUBA_AI_BRIDGE?.emit("ai:message", { message });
+    });
+
+    return { observing: true };
+  });
 })();
