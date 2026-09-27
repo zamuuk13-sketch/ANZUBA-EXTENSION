@@ -28,6 +28,7 @@
         "src/core/theme-adapter.js",
         "src/core/project-manager.js",
         "src/core/virtual-fs.js",
+        "src/core/material-manager.js",
         "src/content.js"
       ],
       "css": [
