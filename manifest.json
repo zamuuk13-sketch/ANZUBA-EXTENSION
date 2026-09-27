@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "ANZUBA",
+  "version": "0.1.0",
+  "description": "ANZUBA — ambiente de desenvolvimento virtual para IAs dentro do navegador.",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "ANZUBA",
+    "default_popup": "src/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content.js"],
+      "css": ["src/content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
