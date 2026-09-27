@@ -313,6 +313,29 @@
     };
   }
 
+  function getIntegrationStatus() {
+    const adapter = getAdapter();
+    if (!adapter) {
+      return {
+        connected: false,
+        supported: false,
+        ai: null,
+        capabilities: getCapabilities().capabilities,
+        page: null,
+        conversation: null
+      };
+    }
+
+    return {
+      connected: true,
+      supported: true,
+      ai: { id: adapter.id, name: adapter.name },
+      capabilities: getCapabilities().capabilities,
+      page: getPageState(),
+      conversation: getConversationSnapshot()
+    };
+  }
+
   function inspect() {
     const adapter = getAdapter();
     const composer = adapter?.findComposer?.() || null;
@@ -345,6 +368,7 @@
     getConversationSnapshot,
     getPageState,
     getCapabilities,
+    getIntegrationStatus,
     observeConversation,
     observePageState,
     observeMessages,
@@ -361,6 +385,7 @@
 
   window.ANZUBA_AI_BRIDGE?.on("ai.adapter.inspect", () => inspect());
   window.ANZUBA_AI_BRIDGE?.on("ai.capabilities", () => getCapabilities());
+  window.ANZUBA_AI_BRIDGE?.on("ai.integration.status", () => getIntegrationStatus());
   window.ANZUBA_AI_BRIDGE?.on("ai.message.list", () => findMessages());
   window.ANZUBA_AI_BRIDGE?.on("ai.conversation.context", () => getConversationContext());
   window.ANZUBA_AI_BRIDGE?.on("ai.conversation.snapshot", () => getConversationSnapshot());
