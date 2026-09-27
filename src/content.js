@@ -7,6 +7,11 @@
   root.id = "anzuba-overlay";
   document.documentElement.appendChild(root);
 
+  function applyTheme() {
+    const theme = window.ANZUBA_THEME?.analyze();
+    if (theme) root.dataset.anzubaMode = theme.mode;
+  }
+
   function showNotification(message) {
     root.replaceChildren();
     const notification = document.createElement("div");
@@ -23,6 +28,7 @@
 
   function updateDetection() {
     const result = window.ANZUBA_AI_DETECTOR?.detect();
+    applyTheme();
     if (!result) return;
 
     if (result.supported) {
@@ -35,6 +41,7 @@
   }
 
   updateDetection();
+
   let lastUrl = location.href;
   const observer = new MutationObserver(() => {
     if (location.href !== lastUrl) {
@@ -43,4 +50,7 @@
     }
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
+
+  const themeObserver = new MutationObserver(() => applyTheme());
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "style", "data-theme"] });
 })();
