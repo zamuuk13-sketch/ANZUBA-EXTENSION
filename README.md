@@ -6,6 +6,10 @@ ANZUBA é uma extensão de navegador que evoluirá para um sistema operacional v
 
 O projeto será desenvolvido em 275 etapas, com cada etapa sendo implementada, testada e aprovada antes da próxima.
 
+### Etapa 9/275 — Gerenciador de recursos
+
+Cada projeto agora possui um registro próprio de recursos. O núcleo pode cadastrar e atualizar ferramentas, compiladores, SDKs, bibliotecas, runtimes, engines e pacotes, além de pesquisar recursos pelo nome, tipo ou versão. Essa camada será usada pelo Tool Manager e pelo sistema de instalação nas próximas etapas.
+
 ### Etapa 8/275 — Materiais
 
 O ANZUBA agora possui um gerenciador de materiais 3D por projeto. Materiais persistem dentro do projeto e podem ser criados, consultados, atualizados e removidos. A estrutura suporta materiais Standard, Physical e Unlit, além de cor, opacidade, transparência, roughness, metalness, emissive e mapas de textura, preparando a integração com o pipeline 3D.
