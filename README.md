@@ -1,30 +1,32 @@
 # ANZUBA
 
-ANZUBA é uma extensão de navegador que evoluirá para um ambiente operacional virtual dedicado a IAs, executado dentro do navegador.
+ANZUBA é uma extensão de navegador que evoluirá para um sistema operacional virtual dedicado a IAs, executado dentro do navegador.
 
 ## Roadmap
 
-O projeto será desenvolvido em **275 etapas**, com cada etapa sendo implementada, testada e aprovada antes da próxima.
+O projeto será desenvolvido em 275 etapas, com cada etapa sendo implementada, testada e aprovada antes da próxima.
 
-### Etapa 1/275 — Extensão base
+### Etapa 2/275 — Detecção de sites de IA
 
-Objetivos:
-- extensão Manifest V3 funcional;
-- service worker;
-- content script;
-- primeira interface injetada;
-- popup da extensão;
-- base preparada para as próximas etapas.
+A extensão agora reconhece ChatGPT, Gemini, DeepSeek, Claude e Manus. A detecção é baseada no domínio da página e fica disponível internamente para as próximas etapas.
 
-## Teste da etapa 1
+## Teste da etapa 2
 
-1. Baixe/clique em **Code > Download ZIP** no GitHub ou clone o repositório.
-2. Abra `chrome://extensions`.
-3. Ative **Modo do desenvolvedor**.
-4. Clique em **Carregar sem compactação**.
-5. Selecione a pasta do ANZUBA.
-6. Abra qualquer página.
-7. Confirme que o selo **ANZUBA** aparece no canto inferior direito.
-8. Abra o popup da extensão e confirme **Extensão ativa**.
+1. Em chrome://extensions, abra o ANZUBA.
+2. Clique em Recarregar depois de atualizar os arquivos.
+3. Abra um dos sites suportados.
+4. Confirme que aparece ANZUBA e o nome da IA detectada.
+5. Teste também uma página que não seja uma IA e confirme que o ANZUBA continua ativo, mas sem marcar uma IA.
+6. Navegue entre páginas/rotas do site e confirme que a detecção continua sendo atualizada.
 
-A etapa 1 só será considerada concluída depois desse teste.
+### Sites reconhecidos
+
+| IA | Domínio |
+|---|---|
+| ChatGPT | chatgpt.com / chat.openai.com |
+| Gemini | gemini.google.com |
+| DeepSeek | chat.deepseek.com |
+| Claude | claude.ai |
+| Manus | manus.im |
+
+A etapa 2 só será considerada concluída depois do teste no navegador.
