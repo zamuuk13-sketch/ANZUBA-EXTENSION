@@ -1,5 +1,9 @@
 # ANZUBA
 
+### Etapa 27/275 — Gerenciador de sessão ativa do chat
+
+O projeto agora possui uma sessão de chat ativa explícita. A sessão atual é marcada automaticamente durante a sincronização e pode ser consultada com `chat.session.active` ou selecionada com `chat.session.select`. A seleção é persistida dentro do projeto e dispara `anzuba:chat-session-changed`, permitindo que a futura interface de histórico alterne entre conversas sem misturar os dados. Esta etapa gerencia a sessão persistida internamente; ela não tenta alterar ou navegar a conversa do site da IA.
+
 ### Etapa 26/275 — Identidade estável de conversas e mensagens
 
 Os snapshots do chat agora usam IDs determinísticos para conversas e mensagens. O ID da conversa é derivado do host e da rota da página, enquanto cada mensagem recebe um identificador baseado no papel, conteúdo e ocorrência dentro da conversa. Isso reduz a dependência da posição das mensagens no DOM e evita que uma mesma conversa seja tratada como sessões diferentes quando a página é atualizada. A página raiz continua usando `current` para não criar uma sessão falsa sem uma rota de conversa identificável.
