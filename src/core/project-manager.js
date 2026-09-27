@@ -392,7 +392,63 @@
       menu.appendChild(item);
     }
 
+    const sessionsButton = document.createElement("button");
+    sessionsButton.type = "button";
+    sessionsButton.className = "anzuba-session-button";
+    sessionsButton.textContent = "Conversas do projeto";
+    sessionsButton.title = "Abrir histórico de conversas";
+    sessionsButton.addEventListener("click", async () => {
+      const active = getActiveProject();
+      if (!active) return;
+
+      const sessions = await getChatSessions(active.id);
+      const sessionMenu = document.createElement("div");
+      sessionMenu.className = "anzuba-session-menu";
+
+      if (!sessions.length) {
+        const empty = document.createElement("div");
+        empty.className = "anzuba-project-empty";
+        empty.textContent = "Nenhuma conversa salva";
+        sessionMenu.appendChild(empty);
+      } else {
+        const activeId = active.data?.activeChatSessionId || active.data?.chat?.conversationId;
+        for (const session of sessions) {
+          const item = document.createElement("button");
+          item.type = "button";
+          item.className = "anzuba-session-item";
+          item.dataset.active = String(session.conversationId === activeId);
+
+          const title = session.title || "Conversa sem título";
+          const count = session.messageCount === 1 ? "1 mensagem" : session.messageCount + " mensagens";
+          item.innerHTML = "<span>" + title.replace(/</g, "&lt;").replace(/>/g, "&gt;") +
+            "</span><small>" + count + "</small>";
+
+          item.addEventListener("click", async () => {
+            await setActiveChatSession(session.conversationId, active.id);
+            sessionMenu.remove();
+            menu.hidden = true;
+            showNotification("Conversa selecionada");
+          });
+          sessionMenu.appendChild(item);
+        }
+      }
+
+      document.documentElement.appendChild(sessionMenu);
+      const rect = sessionsButton.getBoundingClientRect();
+      sessionMenu.style.left = rect.left + "px";
+      sessionMenu.style.top = (rect.bottom + 6) + "px";
+
+      const close = event => {
+        if (!sessionMenu.contains(event.target) && event.target !== sessionsButton) {
+          sessionMenu.remove();
+          document.removeEventListener("pointerdown", close, true);
+        }
+      };
+      document.addEventListener("pointerdown", close, true);
+    });
+
     arrow.addEventListener("click", () => { menu.hidden = !menu.hidden; });
+    menu.appendChild(sessionsButton);
     launcher.append(button, arrow, menu);
     document.documentElement.appendChild(launcher);
   }
