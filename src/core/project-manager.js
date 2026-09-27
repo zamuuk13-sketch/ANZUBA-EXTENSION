@@ -21,6 +21,31 @@
     await chrome.storage.local.set({ [STORAGE_KEY]: state.projects });
   }
 
+  function getProjectData(projectId = state.activeId) {
+    const project = state.projects.find(item => item.id === projectId);
+    return project ? { ...project.data } : null;
+  }
+
+  async function setProjectData(data, projectId = state.activeId) {
+    const project = state.projects.find(item => item.id === projectId);
+    if (!project || !data || typeof data !== "object") return false;
+
+    project.data = { ...project.data, ...data };
+    project.updatedAt = new Date().toISOString();
+    await saveProjects();
+    return true;
+  }
+
+  async function clearProjectData(projectId = state.activeId) {
+    const project = state.projects.find(item => item.id === projectId);
+    if (!project) return false;
+
+    project.data = {};
+    project.updatedAt = new Date().toISOString();
+    await saveProjects();
+    return true;
+  }
+
   async function setActiveProject(id) {
     const project = state.projects.find(item => item.id === id);
     if (!project) return false;
@@ -179,7 +204,10 @@
     getActive: getActiveProject,
     create: openProjectDialog,
     setActive: setActiveProject,
-    save: saveProjects
+    save: saveProjects,
+    getData: getProjectData,
+    setData: setProjectData,
+    clearData: clearProjectData
   };
 
   loadProjects();
