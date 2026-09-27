@@ -1,5 +1,10 @@
 # ANZUBA
 
+### Etapa 31/275 — Núcleo do ANZUBA OS
+
+O ANZUBA agora possui o primeiro núcleo persistente do sistema operacional virtual. Cada projeto recebe uma instância própria do **ANZUBA OS**, com identidade do sistema, kernel virtual, arquitetura, CPU, memória, disco, usuário `ai`, raiz de arquivos e estado de execução. O núcleo permite inicializar, consultar e desligar o sistema através de `window.ANZUBA_OS` e dos comandos `os.boot`, `os.status` e `os.shutdown`. A instância é isolada por projeto e persistida junto aos dados do ambiente.
+
+
 ### Etapa 30/275 — Exportação de projetos
 
 O ANZUBA agora consegue exportar o projeto ativo para um arquivo JSON próprio. O menu do projeto ganhou **Exportar projeto**, gerando um arquivo `.anzuba.json` com metadados, IA associada e todos os dados persistidos do projeto. O formato é compatível com a importação da etapa 29 (`anzuba-project`, versão 1), enquanto o ID interno do projeto não é exportado para que a importação continue criando uma nova identidade sem sobrescrever projetos existentes.
