@@ -449,12 +449,13 @@
   });
 
   window.ANZUBA_AI_BRIDGE?.on("ai.message.observe", ({ enabled = true }) => {
-    if (!enabled) return { observing: false };
-
-    if (window.__ANZUBA_AI_MESSAGE_STOP__) {
-      window.__ANZUBA_AI_MESSAGE_STOP__();
+    if (!enabled) {
+      window.__ANZUBA_AI_MESSAGE_STOP__?.();
+      window.__ANZUBA_AI_MESSAGE_STOP__ = null;
+      return { observing: false };
     }
 
+    window.__ANZUBA_AI_MESSAGE_STOP__?.();
     window.__ANZUBA_AI_MESSAGE_STOP__ = observeMessages((message) => {
       window.ANZUBA_AI_BRIDGE?.emit("ai:message", { message });
     });
