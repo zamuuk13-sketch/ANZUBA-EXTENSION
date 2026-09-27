@@ -26,12 +26,12 @@
       "js": [
         "src/core/ai-detector.js",
         "src/core/theme-adapter.js",
+        "src/core/ai-bridge.js",
         "src/core/project-manager.js",
         "src/core/virtual-fs.js",
         "src/core/material-manager.js",
         "src/core/resource-manager.js",
         "src/core/environment-manager.js",
-        "src/core/ai-bridge.js",
         "src/core/ai-adapters.js",
         "src/content.js"
       ],
