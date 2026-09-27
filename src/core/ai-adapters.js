@@ -153,24 +153,52 @@
     };
   }
 
+  function stableHash(value) {
+    let hash = 2166136261;
+    const text = String(value ?? "");
+
+    for (let index = 0; index < text.length; index += 1) {
+      hash ^= text.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+
+    return (hash >>> 0).toString(16).padStart(8, "0");
+  }
+
   function getConversationId() {
     const url = new URL(location.href);
-    const parts = url.pathname.split("/").filter(Boolean);
-    return parts.length ? parts[parts.length - 1] : "current";
+    const path = url.pathname.replace(/\\/+$/, "") || "/";
+
+    // Rotas de conversa reais recebem um ID determinístico.
+    // Na página raiz, mantemos "current" para não criar uma sessão falsa.
+    const parts = path.split("/").filter(Boolean);
+    if (!parts.length) return "current";
+
+    const routeKey = [location.host, path].join("|");
+    return "conv_" + stableHash(routeKey);
   }
 
   function getConversationSnapshot() {
     const context = getConversationContext();
+    const conversationId = getConversationId();
+    const seen = new Map();
+
     return {
-      conversationId: getConversationId(),
+      conversationId,
       ai: context.ai,
       url: context.url,
       messageCount: context.messages.length,
-      messages: context.messages.map((message, index) => ({
-        id: message.role + "_" + index + "_" + message.text.length,
-        role: message.role,
-        text: message.text
-      }))
+      messages: context.messages.map((message) => {
+        const base = stableHash(message.role + "|" + message.text);
+        const occurrence = seen.get(base) || 0;
+        seen.set(base, occurrence + 1);
+
+        return {
+          id: "msg_" + conversationId + "_" + base + "_" + occurrence,
+          role: message.role,
+          text: message.text
+        };
+      })
     };
   }
 
