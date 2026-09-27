@@ -5,7 +5,7 @@
 
   function parseColor(value) {
     if (!value) return null;
-    const match = value.match(/rgba?\\(([^)]+)\\)/i);
+    const match = value.match(/rgba?\(([^)]+)\)/i);
     if (!match) return value.trim();
     const parts = match[1].split(",").map(v => Number.parseFloat(v.trim()));
     if (parts.length < 3 || parts.some(Number.isNaN)) return null;
