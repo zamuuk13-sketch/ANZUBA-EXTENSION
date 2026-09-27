@@ -84,6 +84,86 @@
     return getProjectSummary(state.projects.find(project => project.id === id) || null);
   }
 
+  function sanitizeImportedProject(raw) {
+    if (!raw || typeof raw !== "object") throw new Error("Arquivo de projeto inválido.");
+    if (raw.format !== "anzuba-project") throw new Error("Formato de projeto ANZUBA não reconhecido.");
+    if (Number(raw.version) !== 1) throw new Error("Versão de projeto não suportada.");
+
+    const name = String(raw.name || "").trim().slice(0, 60);
+    if (!name) throw new Error("O projeto importado não possui nome.");
+
+    const data = raw.data && typeof raw.data === "object" && !Array.isArray(raw.data)
+      ? raw.data
+      : {};
+
+    return {
+      name,
+      ai: raw.ai && typeof raw.ai === "object"
+        ? { id: String(raw.ai.id || ""), name: String(raw.ai.name || "") }
+        : (typeof raw.ai === "string" ? raw.ai : null),
+      data
+    };
+  }
+
+  async function importProjectFromFile(file) {
+    if (!file) return false;
+
+    const text = await file.text();
+    let raw;
+
+    try {
+      raw = JSON.parse(text);
+    } catch {
+      throw new Error("Não foi possível ler o arquivo do projeto.");
+    }
+
+    const imported = sanitizeImportedProject(raw);
+    const now = new Date().toISOString();
+    const project = {
+      id: crypto.randomUUID(),
+      name: imported.name,
+      ai: imported.ai,
+      createdAt: now,
+      updatedAt: now,
+      data: imported.data
+    };
+
+    state.projects.unshift(project);
+    state.activeId = project.id;
+
+    await chrome.storage.local.set({
+      [STORAGE_KEY]: state.projects,
+      [ACTIVE_KEY]: state.activeId
+    });
+
+    applyActiveProject();
+    renderProjectMenu();
+    showNotification("Projeto importado • " + project.name);
+    window.dispatchEvent(new CustomEvent("anzuba:project-changed", { detail: { ...project } }));
+    return true;
+  }
+
+  function openProjectImport() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json,application/json";
+    input.style.display = "none";
+
+    input.addEventListener("change", async () => {
+      const file = input.files?.[0];
+      try {
+        await importProjectFromFile(file);
+      } catch (error) {
+        showNotification(error?.message || "Não foi possível importar o projeto.");
+      } finally {
+        input.remove();
+      }
+    });
+
+    document.documentElement.appendChild(input);
+    input.click();
+  }
+
   function normalizeChatMessages(messages, conversationId = "current") {
     if (!Array.isArray(messages)) return [];
 
@@ -392,6 +472,16 @@
       menu.appendChild(item);
     }
 
+    const importButton = document.createElement("button");
+    importButton.type = "button";
+    importButton.className = "anzuba-session-button";
+    importButton.textContent = "Importar projeto";
+    importButton.title = "Importar um projeto ANZUBA";
+    importButton.addEventListener("click", () => {
+      menu.hidden = true;
+      openProjectImport();
+    });
+
     const sessionsButton = document.createElement("button");
     sessionsButton.type = "button";
     sessionsButton.className = "anzuba-session-button";
@@ -455,11 +545,15 @@
         requestAnimationFrame(() => menu.classList.add("anzuba-pop-in"));
       }
     });
+    menu.appendChild(importButton);
     menu.appendChild(sessionsButton);
     launcher.append(button, arrow, menu);
     document.documentElement.appendChild(launcher);
   }
 
+  window.ANZUBA_AI_BRIDGE?.on("project.import", ({ file } = {}) =>
+    file ? importProjectFromFile(file) : false
+  );
   window.ANZUBA_AI_BRIDGE?.on("project.summary", ({ id } = {}) =>
     id ? getProjectSummaryById(id) : getProjectSummary(getActiveProject())
   );
@@ -501,7 +595,9 @@
     getChatMessages,
     getChatSessions,
     getActiveChatSession,
-    setActiveChatSession
+    setActiveChatSession,
+    importProject: openProjectImport,
+    importProjectFromFile
   };
 
   loadProjects();
