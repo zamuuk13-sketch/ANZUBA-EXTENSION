@@ -84,16 +84,44 @@
     return getProjectSummary(state.projects.find(project => project.id === id) || null);
   }
 
+  function normalizeChatMessages(messages, conversationId = "current") {
+    if (!Array.isArray(messages)) return [];
+
+    return messages
+      .map((message, index) => {
+        const role = message?.role === "user" ? "user" : "assistant";
+        const text = String(message?.text ?? "").trim();
+        if (!text) return null;
+
+        const existingId = String(message?.id || "").trim();
+        const id = existingId || ("msg_" + conversationId + "_" + index);
+
+        return {
+          id,
+          role,
+          text
+        };
+      })
+      .filter(Boolean);
+  }
+
+  function chatMessagesEqual(left, right) {
+    return JSON.stringify(left) === JSON.stringify(right);
+  }
+
   async function getChatMessages(projectId = state.activeId) {
     const project = state.projects.find(item => item.id === projectId);
     const chat = project?.data?.chat;
     if (!chat) return null;
 
+    const conversationId = chat.conversationId || "current";
+    const messages = normalizeChatMessages(chat.messages, conversationId);
+
     return {
-      conversationId: chat.conversationId || "current",
+      conversationId,
       ai: chat.ai || null,
-      messageCount: Number(chat.messageCount || 0),
-      messages: Array.isArray(chat.messages) ? [...chat.messages] : []
+      messageCount: messages.length,
+      messages
     };
   }
 
@@ -110,19 +138,33 @@
     const conversation = window.ANZUBA_AI_ADAPTERS?.getConversationSnapshot?.() || null;
     const ai = window.ANZUBA_AI_DETECTOR?.detect?.() || null;
 
+    const conversationId = conversation?.conversationId || page?.conversationId || "current";
+    const messages = normalizeChatMessages(conversation?.messages, conversationId);
+    const previousChat = project.data?.chat || null;
+
     const chat = {
-      ai: ai ? { id: ai.id, name: ai.name } : null,
+      ai: ai ? { id: ai.id, name: ai.name } : (previousChat?.ai || null),
       url: page?.url || location.href,
       title: page?.title || document.title,
-      conversationId: conversation?.conversationId || page?.conversationId || "current",
-      messageCount: conversation?.messageCount ?? 0,
-      messages: Array.isArray(conversation?.messages) ? conversation.messages.map(message => ({
-        id: message.id,
-        role: message.role,
-        text: message.text
-      })) : [],
+      conversationId,
+      messageCount: messages.length,
+      messages,
       updatedAt: new Date().toISOString()
     };
+
+    const previousMessages = normalizeChatMessages(
+      previousChat?.messages,
+      previousChat?.conversationId || conversationId
+    );
+
+    const changed =
+      !previousChat ||
+      previousChat.conversationId !== chat.conversationId ||
+      previousChat.url !== chat.url ||
+      previousChat.title !== chat.title ||
+      !chatMessagesEqual(previousMessages, chat.messages);
+
+    if (!changed) return { ...previousChat };
 
     project.data = { ...(project.data || {}), chat };
     project.updatedAt = chat.updatedAt;
@@ -292,7 +334,8 @@
     save: saveProjects,
     getData: getProjectData,
     setData: setProjectData,
-    clearData: clearProjectData
+    clearData: clearProjectData,
+    getChatMessages
   };
 
   loadProjects();
