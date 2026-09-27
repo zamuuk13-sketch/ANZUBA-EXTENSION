@@ -1,5 +1,9 @@
 # ANZUBA
 
+### Etapa 26/275 — Identidade estável de conversas e mensagens
+
+Os snapshots do chat agora usam IDs determinísticos para conversas e mensagens. O ID da conversa é derivado do host e da rota da página, enquanto cada mensagem recebe um identificador baseado no papel, conteúdo e ocorrência dentro da conversa. Isso reduz a dependência da posição das mensagens no DOM e evita que uma mesma conversa seja tratada como sessões diferentes quando a página é atualizada. A página raiz continua usando `current` para não criar uma sessão falsa sem uma rota de conversa identificável.
+
 ### Etapa 25/275 — Sessões de chat por projeto
 
 Cada projeto agora pode manter várias conversas da IA separadamente. Durante a sincronização, o snapshot atual é salvo ou atualizado dentro de `chatSessions`, usando o identificador da conversa para evitar misturar históricos. O comando `chat.sessions` permite consultar todas as sessões persistidas do projeto, enquanto `chat.messages` continua retornando a conversa atual.
