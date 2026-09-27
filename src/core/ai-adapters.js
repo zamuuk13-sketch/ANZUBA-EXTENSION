@@ -7,6 +7,11 @@
         return document.querySelector(
           'textarea, [contenteditable="true"][role="textbox"], [contenteditable="true"]'
         );
+      },
+      findSendButton() {
+        return document.querySelector(
+          'button[type="submit"], button[aria-label*="Send" i], button[aria-label*="Enviar" i]'
+        );
       }
     },
     gemini: {
@@ -15,6 +20,11 @@
       findComposer() {
         return document.querySelector(
           'textarea, [contenteditable="true"][role="textbox"], [contenteditable="true"]'
+        );
+      },
+      findSendButton() {
+        return document.querySelector(
+          'button[type="submit"], button[aria-label*="Send" i], button[aria-label*="Enviar" i]'
         );
       }
     },
@@ -25,6 +35,11 @@
         return document.querySelector(
           'textarea, [contenteditable="true"][role="textbox"], [contenteditable="true"]'
         );
+      },
+      findSendButton() {
+        return document.querySelector(
+          'button[type="submit"], button[aria-label*="Send" i], button[aria-label*="Enviar" i]'
+        );
       }
     },
     claude: {
@@ -33,6 +48,11 @@
       findComposer() {
         return document.querySelector(
           'textarea, [contenteditable="true"][role="textbox"], [contenteditable="true"]'
+        );
+      },
+      findSendButton() {
+        return document.querySelector(
+          'button[type="submit"], button[aria-label*="Send" i], button[aria-label*="Enviar" i]'
         );
       }
     },
@@ -43,6 +63,11 @@
         return document.querySelector(
           'textarea, [contenteditable="true"][role="textbox"], [contenteditable="true"]'
         );
+      },
+      findSendButton() {
+        return document.querySelector(
+          'button[type="submit"], button[aria-label*="Send" i], button[aria-label*="Enviar" i]'
+        );
       }
     }
   };
@@ -50,6 +75,60 @@
   function getAdapter() {
     const ai = window.ANZUBA_AI_DETECTOR?.detect();
     return ai?.supported ? adapters[ai.id] || null : null;
+  }
+
+  function setComposerValue(value) {
+    const adapter = getAdapter();
+    const composer = adapter?.findComposer?.();
+    if (!composer) throw new Error("Campo de mensagem não encontrado.");
+
+    const text = String(value ?? "");
+
+    if (composer instanceof HTMLTextAreaElement || composer instanceof HTMLInputElement) {
+      const setter = Object.getOwnPropertyDescriptor(
+        Object.getPrototypeOf(composer),
+        "value"
+      )?.set;
+      setter ? setter.call(composer, text) : (composer.value = text);
+      composer.dispatchEvent(new Event("input", { bubbles: true }));
+      composer.dispatchEvent(new Event("change", { bubbles: true }));
+    } else {
+      composer.focus();
+      composer.textContent = text;
+      composer.dispatchEvent(new InputEvent("input", {
+        bubbles: true,
+        inputType: "insertText",
+        data: text
+      }));
+    }
+
+    return { updated: true, length: text.length };
+  }
+
+  function sendMessage(value) {
+    const adapter = getAdapter();
+    if (!adapter) throw new Error("IA não suportada.");
+
+    setComposerValue(value);
+
+    const button = adapter.findSendButton?.();
+    if (button && !button.disabled) {
+      button.click();
+      return { sent: true, method: "button" };
+    }
+
+    const composer = adapter.findComposer?.();
+    if (composer) {
+      composer.dispatchEvent(new KeyboardEvent("keydown", {
+        key: "Enter",
+        code: "Enter",
+        bubbles: true,
+        cancelable: true
+      }));
+      return { sent: true, method: "enter" };
+    }
+
+    throw new Error("Não foi possível enviar a mensagem.");
   }
 
   function inspect() {
@@ -76,8 +155,18 @@
   window.ANZUBA_AI_ADAPTERS = {
     getAdapter,
     inspect,
+    setComposerValue,
+    sendMessage,
     getSupported: () => Object.values(adapters).map(({ id, name }) => ({ id, name }))
   };
+
+  window.ANZUBA_AI_BRIDGE?.on("ai.message.set", ({ value }) => {
+    return setComposerValue(value);
+  });
+
+  window.ANZUBA_AI_BRIDGE?.on("ai.message.send", ({ value }) => {
+    return sendMessage(value);
+  });
 
   window.ANZUBA_AI_BRIDGE?.on("ai.adapter.inspect", () => inspect());
 })();
