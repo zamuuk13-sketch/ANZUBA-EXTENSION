@@ -1,5 +1,9 @@
 # ANZUBA
 
+### Etapa 24/275 — Histórico incremental e deduplicado do chat
+
+O histórico persistido agora é normalizado antes de ser salvo e consultado. As mensagens vazias são descartadas, cada mensagem recebe um ID estável por conversa/posição quando necessário e atualizações do texto da mesma mensagem substituem o conteúdo existente em vez de criar duplicatas. O ANZUBA também evita gravar novamente o projeto quando o estado do chat não mudou. A API getChatMessages ficou disponível em window.ANZUBA_PROJECTS, enquanto chat.messages continua sendo o comando da ponte para consultar o histórico.
+
 ANZUBA é uma extensão de navegador que evoluirá para um sistema operacional virtual dedicado a IAs, executado dentro do navegador.
 
 ## Roadmap
