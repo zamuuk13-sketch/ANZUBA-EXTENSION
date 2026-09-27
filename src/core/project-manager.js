@@ -164,6 +164,59 @@
     input.click();
   }
 
+  function buildProjectExport(project) {
+    if (!project) throw new Error("Nenhum projeto selecionado para exportação.");
+
+    return {
+      format: "anzuba-project",
+      version: 1,
+      name: String(project.name || "Projeto ANZUBA").slice(0, 60),
+      ai: project.ai || null,
+      createdAt: project.createdAt || null,
+      updatedAt: project.updatedAt || null,
+      data: project.data && typeof project.data === "object" ? project.data : {}
+    };
+  }
+
+  function safeExportFileName(name) {
+    const value = String(name || "projeto-anzuba")
+      .trim()
+      .replace(/[\\/:*?"<>|]+/g, "-")
+      .replace(/\\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 80);
+    return (value || "projeto-anzuba") + ".anzuba.json";
+  }
+
+  async function exportProjectToFile(projectId = state.activeId) {
+    const project = state.projects.find(item => item.id === projectId);
+    if (!project) throw new Error("Projeto não encontrado.");
+
+    const payload = buildProjectExport(project);
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = safeExportFileName(project.name);
+    link.style.display = "none";
+    document.documentElement.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showNotification("Projeto exportado • " + project.name);
+
+    return {
+      exported: true,
+      projectId: project.id,
+      name: project.name,
+      fileName: link.download
+    };
+  }
+
   function normalizeChatMessages(messages, conversationId = "current") {
     if (!Array.isArray(messages)) return [];
 
@@ -482,6 +535,20 @@
       openProjectImport();
     });
 
+    const exportButton = document.createElement("button");
+    exportButton.type = "button";
+    exportButton.className = "anzuba-session-button";
+    exportButton.textContent = "Exportar projeto";
+    exportButton.title = "Exportar o projeto ANZUBA atual";
+    exportButton.addEventListener("click", async () => {
+      menu.hidden = true;
+      try {
+        await exportProjectToFile();
+      } catch (error) {
+        showNotification(error?.message || "Não foi possível exportar o projeto.");
+      }
+    });
+
     const sessionsButton = document.createElement("button");
     sessionsButton.type = "button";
     sessionsButton.className = "anzuba-session-button";
@@ -546,6 +613,7 @@
       }
     });
     menu.appendChild(importButton);
+    menu.appendChild(exportButton);
     menu.appendChild(sessionsButton);
     launcher.append(button, arrow, menu);
     document.documentElement.appendChild(launcher);
@@ -553,6 +621,9 @@
 
   window.ANZUBA_AI_BRIDGE?.on("project.import", ({ file } = {}) =>
     file ? importProjectFromFile(file) : false
+  );
+  window.ANZUBA_AI_BRIDGE?.on("project.export", ({ id } = {}) =>
+    exportProjectToFile(id || state.activeId)
   );
   window.ANZUBA_AI_BRIDGE?.on("project.summary", ({ id } = {}) =>
     id ? getProjectSummaryById(id) : getProjectSummary(getActiveProject())
@@ -597,7 +668,8 @@
     getActiveChatSession,
     setActiveChatSession,
     importProject: openProjectImport,
-    importProjectFromFile
+    importProjectFromFile,
+    exportProject: exportProjectToFile
   };
 
   loadProjects();
