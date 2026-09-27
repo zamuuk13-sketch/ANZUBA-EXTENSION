@@ -228,6 +228,64 @@
     return () => observer.disconnect();
   }
 
+  function getPageState() {
+    const context = getConversationContext();
+    return {
+      ai: context.ai,
+      url: context.url,
+      title: context.title,
+      conversationId: getConversationId(),
+      messageCount: context.messages.length
+    };
+  }
+
+  function observePageState(onChange) {
+    if (typeof onChange !== "function") {
+      throw new Error("Callback inválido.");
+    }
+
+    let previous = JSON.stringify(getPageState());
+    const scan = () => {
+      const state = getPageState();
+      const current = JSON.stringify(state);
+      if (current === previous) return;
+      previous = current;
+      onChange(state);
+    };
+
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+    const onPopState = () => scan();
+
+    history.pushState = function(...args) {
+      const result = originalPushState.apply(this, args);
+      scan();
+      return result;
+    };
+
+    history.replaceState = function(...args) {
+      const result = originalReplaceState.apply(this, args);
+      scan();
+      return result;
+    };
+
+    window.addEventListener("popstate", onPopState);
+
+    const observer = new MutationObserver(scan);
+    observer.observe(document.title ? document.head : document.documentElement, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+
+    return () => {
+      history.pushState = originalPushState;
+      history.replaceState = originalReplaceState;
+      window.removeEventListener("popstate", onPopState);
+      observer.disconnect();
+    };
+  }
+
   function inspect() {
     const adapter = getAdapter();
     const composer = adapter?.findComposer?.() || null;
@@ -258,7 +316,9 @@
     getConversationContext,
     getConversationId,
     getConversationSnapshot,
+    getPageState,
     observeConversation,
+    observePageState,
     observeMessages,
     getSupported: () => Object.values(adapters).map(({ id, name }) => ({ id, name }))
   };
@@ -275,6 +335,22 @@
   window.ANZUBA_AI_BRIDGE?.on("ai.message.list", () => findMessages());
   window.ANZUBA_AI_BRIDGE?.on("ai.conversation.context", () => getConversationContext());
   window.ANZUBA_AI_BRIDGE?.on("ai.conversation.snapshot", () => getConversationSnapshot());
+  window.ANZUBA_AI_BRIDGE?.on("ai.page.state", () => getPageState());
+  window.ANZUBA_AI_BRIDGE?.on("ai.page.observe", ({ enabled = true }) => {
+    if (!enabled) {
+      window.__ANZUBA_AI_PAGE_STOP__?.();
+      window.__ANZUBA_AI_PAGE_STOP__ = null;
+      return { observing: false };
+    }
+
+    window.__ANZUBA_AI_PAGE_STOP__?.();
+    window.__ANZUBA_AI_PAGE_STOP__ = observePageState((state) => {
+      window.ANZUBA_AI_BRIDGE?.emit("ai:page-changed", { state });
+    });
+
+    return { observing: true };
+  });
+
   window.ANZUBA_AI_BRIDGE?.on("ai.conversation.observe", ({ enabled = true }) => {
     if (!enabled) {
       window.__ANZUBA_AI_CONVERSATION_STOP__?.();
