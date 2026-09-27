@@ -4,7 +4,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === "ANZUBA_PING") {
-    sendResponse({ ok: true, version: "0.1.0" });
+    sendResponse({ ok: true, version: "0.2.0" });
   }
   return true;
 });
