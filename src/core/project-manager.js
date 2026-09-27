@@ -434,6 +434,7 @@
       }
 
       document.documentElement.appendChild(sessionMenu);
+      requestAnimationFrame(() => sessionMenu.classList.add("anzuba-pop-in"));
       const rect = sessionsButton.getBoundingClientRect();
       sessionMenu.style.left = rect.left + "px";
       sessionMenu.style.top = (rect.bottom + 6) + "px";
@@ -447,7 +448,13 @@
       document.addEventListener("pointerdown", close, true);
     });
 
-    arrow.addEventListener("click", () => { menu.hidden = !menu.hidden; });
+    arrow.addEventListener("click", () => {
+      menu.hidden = !menu.hidden;
+      if (!menu.hidden) {
+        menu.classList.remove("anzuba-pop-in");
+        requestAnimationFrame(() => menu.classList.add("anzuba-pop-in"));
+      }
+    });
     menu.appendChild(sessionsButton);
     launcher.append(button, arrow, menu);
     document.documentElement.appendChild(launcher);
