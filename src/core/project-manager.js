@@ -109,6 +109,22 @@
     return JSON.stringify(left) === JSON.stringify(right);
   }
 
+  async function getChatSessions(projectId = state.activeId) {
+    const project = state.projects.find(item => item.id === projectId);
+    const sessions = project?.data?.chatSessions;
+    if (!Array.isArray(sessions)) return [];
+
+    return sessions.map(session => ({
+      conversationId: session.conversationId || "current",
+      ai: session.ai || null,
+      url: session.url || null,
+      title: session.title || "",
+      messageCount: Number(session.messageCount || 0),
+      updatedAt: session.updatedAt || null,
+      messages: normalizeChatMessages(session.messages, session.conversationId || "current")
+    }));
+  }
+
   async function getChatMessages(projectId = state.activeId) {
     const project = state.projects.find(item => item.id === projectId);
     const chat = project?.data?.chat;
@@ -164,9 +180,38 @@
       previousChat.title !== chat.title ||
       !chatMessagesEqual(previousMessages, chat.messages);
 
-    if (!changed) return { ...previousChat };
+    const data = project.data || {};
+    const sessions = Array.isArray(data.chatSessions) ? [...data.chatSessions] : [];
+    const sessionIndex = sessions.findIndex(session => session.conversationId === chat.conversationId);
 
-    project.data = { ...(project.data || {}), chat };
+    if (sessionIndex >= 0) {
+      const previousSession = sessions[sessionIndex];
+      const sessionChanged =
+        previousSession.url !== chat.url ||
+        previousSession.title !== chat.title ||
+        previousSession.messageCount !== chat.messageCount ||
+        !chatMessagesEqual(
+          normalizeChatMessages(previousSession.messages, chat.conversationId),
+          chat.messages
+        );
+
+      if (sessionChanged) sessions[sessionIndex] = { ...chat };
+    } else {
+      sessions.unshift({ ...chat });
+    }
+
+    const nextData = {
+      ...data,
+      chat,
+      chatSessions: sessions
+    };
+
+    if (!changed && sessionIndex >= 0) {
+      const previousSessions = Array.isArray(data.chatSessions) ? data.chatSessions : [];
+      if (JSON.stringify(previousSessions) === JSON.stringify(sessions)) return { ...previousChat };
+    }
+
+    project.data = nextData;
     project.updatedAt = chat.updatedAt;
     await saveProjects();
     return { ...chat };
@@ -315,6 +360,9 @@
   window.ANZUBA_AI_BRIDGE?.on("chat.messages", ({ id } = {}) =>
     getChatMessages(id || state.activeId)
   );
+  window.ANZUBA_AI_BRIDGE?.on("chat.sessions", ({ id } = {}) =>
+    getChatSessions(id || state.activeId)
+  );
   window.ANZUBA_AI_BRIDGE?.on("chat.bind", ({ id } = {}) =>
     syncChatState(id || state.activeId)
   );
@@ -335,7 +383,8 @@
     getData: getProjectData,
     setData: setProjectData,
     clearData: clearProjectData,
-    getChatMessages
+    getChatMessages,
+    getChatSessions
   };
 
   loadProjects();
