@@ -167,7 +167,7 @@
 
   function getConversationId() {
     const url = new URL(location.href);
-    const path = url.pathname.replace(/\\/+$/, "") || "/";
+    const path = url.pathname.replace(/\/+$/, "") || "/";
 
     // Rotas de conversa reais recebem um ID determinístico.
     // Na página raiz, mantemos "current" para não criar uma sessão falsa.
