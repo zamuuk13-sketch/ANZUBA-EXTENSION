@@ -284,3 +284,32 @@
     animation: none;
   }
 }
+
+.anzuba-project-button,
+.anzuba-project-arrow {
+  will-change: transform;
+}
+#anzuba-notification {
+  animation: anzuba-notification-in 260ms cubic-bezier(.16,1,.3,1) both;
+}
+.anzuba-project-card {
+  animation: anzuba-card-in 240ms cubic-bezier(.16,1,.3,1) both;
+}
+.anzuba-project-create:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+@keyframes anzuba-notification-in {
+  from { opacity: 0; transform: translateY(-8px) scale(.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes anzuba-card-in {
+  from { opacity: 0; transform: translateY(8px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #anzuba-notification,
+  .anzuba-project-card {
+    animation: none;
+  }
+}
