@@ -6,6 +6,10 @@ ANZUBA é uma extensão de navegador que evoluirá para um sistema operacional v
 
 O projeto será desenvolvido em 275 etapas, com cada etapa sendo implementada, testada e aprovada antes da próxima.
 
+### Etapa 15/275 — Leitura das respostas da IA
+
+Os adaptadores agora conseguem localizar mensagens produzidas pela IA e observar novas respostas na página. A ponte ganhou os comandos `ai.message.list` e `ai.message.observe`; quando uma nova resposta é detectada, o ANZUBA emite o evento `ai:message` com o conteúdo identificado. A observação é feita pelo adaptador do site, mantendo o núcleo independente da estrutura específica de cada IA.
+
 ### Etapa 14/275 — Canal de mensagens com a IA
 
 Os adaptadores agora conseguem interagir com o campo de mensagem da IA. O ANZUBA pode preencher o compositor e solicitar o envio de uma mensagem através de comandos da ponte (`ai.message.set` e `ai.message.send`). O sistema usa primeiro o botão de envio quando disponível e possui uma alternativa por Enter. A implementação mantém essa lógica dentro dos adaptadores, evitando acoplamento do núcleo a um site específico.
