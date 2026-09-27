@@ -30,6 +30,7 @@
         "src/core/virtual-fs.js",
         "src/core/material-manager.js",
         "src/core/resource-manager.js",
+        "src/core/environment-manager.js",
         "src/content.js"
       ],
       "css": [
