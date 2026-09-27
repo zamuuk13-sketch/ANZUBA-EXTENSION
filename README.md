@@ -6,6 +6,10 @@ ANZUBA é uma extensão de navegador que evoluirá para um sistema operacional v
 
 O projeto será desenvolvido em 275 etapas, com cada etapa sendo implementada, testada e aprovada antes da próxima.
 
+### Etapa 10/275 — Ambiente virtual por projeto
+
+Cada projeto agora possui variáveis de ambiente e um `PATH` próprios, persistidos no armazenamento do projeto. O ambiente inicial inclui `HOME`, `USER`, `SHELL`, `PWD` e caminhos básicos. O núcleo pode definir, remover e consultar variáveis, além de adicionar ou remover caminhos do `PATH`. Essa camada prepara o terminal e a descoberta de ferramentas das próximas etapas.
+
 ### Etapa 9/275 — Gerenciador de recursos
 
 Cada projeto agora possui um registro próprio de recursos. O núcleo pode cadastrar e atualizar ferramentas, compiladores, SDKs, bibliotecas, runtimes, engines e pacotes, além de pesquisar recursos pelo nome, tipo ou versão. Essa camada será usada pelo Tool Manager e pelo sistema de instalação nas próximas etapas.
