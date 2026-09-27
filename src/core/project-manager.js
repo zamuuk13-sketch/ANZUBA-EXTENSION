@@ -125,6 +125,51 @@
     }));
   }
 
+  function getActiveChatSession(projectId = state.activeId) {
+    const project = state.projects.find(item => item.id === projectId);
+    if (!project) return null;
+
+    const sessionId = project.data?.activeChatSessionId || project.data?.chat?.conversationId || null;
+    if (!sessionId) return null;
+
+    const sessions = Array.isArray(project.data?.chatSessions) ? project.data.chatSessions : [];
+    const session = sessions.find(item => item.conversationId === sessionId);
+    return session ? {
+      conversationId: session.conversationId || "current",
+      ai: session.ai || null,
+      url: session.url || null,
+      title: session.title || "",
+      messageCount: Number(session.messageCount || 0),
+      updatedAt: session.updatedAt || null,
+      messages: normalizeChatMessages(session.messages, session.conversationId || "current")
+    } : null;
+  }
+
+  async function setActiveChatSession(conversationId, projectId = state.activeId) {
+    const project = state.projects.find(item => item.id === projectId);
+    if (!project || !conversationId) return false;
+
+    const sessions = Array.isArray(project.data?.chatSessions) ? project.data.chatSessions : [];
+    const session = sessions.find(item => item.conversationId === conversationId);
+    if (!session) return false;
+
+    project.data = {
+      ...(project.data || {}),
+      activeChatSessionId: session.conversationId
+    };
+    project.updatedAt = new Date().toISOString();
+    await saveProjects();
+
+    window.dispatchEvent(new CustomEvent("anzuba:chat-session-changed", {
+      detail: {
+        projectId: project.id,
+        conversationId: session.conversationId
+      }
+    }));
+
+    return true;
+  }
+
   async function getChatMessages(projectId = state.activeId) {
     const project = state.projects.find(item => item.id === projectId);
     const chat = project?.data?.chat;
@@ -203,7 +248,8 @@
     const nextData = {
       ...data,
       chat,
-      chatSessions: sessions
+      chatSessions: sessions,
+      activeChatSessionId: chat.conversationId
     };
 
     if (!changed && sessionIndex >= 0) {
@@ -366,6 +412,12 @@
   window.ANZUBA_AI_BRIDGE?.on("chat.bind", ({ id } = {}) =>
     syncChatState(id || state.activeId)
   );
+  window.ANZUBA_AI_BRIDGE?.on("chat.session.active", ({ id } = {}) =>
+    getActiveChatSession(id || state.activeId)
+  );
+  window.ANZUBA_AI_BRIDGE?.on("chat.session.select", ({ conversationId, id } = {}) =>
+    setActiveChatSession(conversationId, id || state.activeId)
+  );
 
   window.addEventListener("anzuba:ai-event", event => {
     const type = event.detail?.type;
@@ -384,7 +436,9 @@
     setData: setProjectData,
     clearData: clearProjectData,
     getChatMessages,
-    getChatSessions
+    getChatSessions,
+    getActiveChatSession,
+    setActiveChatSession
   };
 
   loadProjects();
