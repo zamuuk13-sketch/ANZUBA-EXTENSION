@@ -6,6 +6,10 @@ ANZUBA é uma extensão de navegador que evoluirá para um sistema operacional v
 
 O projeto será desenvolvido em 275 etapas, com cada etapa sendo implementada, testada e aprovada antes da próxima.
 
+### Etapa 21/275 — Metadados e resumo estruturado de projetos
+
+O sistema de projetos agora consegue gerar um resumo seguro e padronizado de um projeto, incluindo ID, nome, IA associada, datas, existência de dados e quais áreas de dados estão presentes. O comando `project.summary` permite consultar o projeto ativo ou um projeto específico sem expor todo o conteúdo interno.
+
 ### Etapa 20/275 — Estado unificado da integração com a IA
 
 O ANZUBA agora possui um estado unificado da integração atual. O comando `ai.integration.status` reúne em uma única resposta a IA detectada, conexão, capacidades disponíveis, estado da página e snapshot da conversa. Isso cria um ponto único para os módulos seguintes consultarem o estado da integração sem precisar conhecer os detalhes dos adaptadores.
