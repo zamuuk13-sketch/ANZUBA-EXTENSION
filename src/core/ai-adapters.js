@@ -286,6 +286,33 @@
     };
   }
 
+  function getCapabilities() {
+    const adapter = getAdapter();
+    if (!adapter) {
+      return {
+        supported: false,
+        ai: null,
+        capabilities: {
+          readConversation: false,
+          observeConversation: false,
+          sendMessage: false,
+          observePage: false
+        }
+      };
+    }
+
+    return {
+      supported: true,
+      ai: { id: adapter.id, name: adapter.name },
+      capabilities: {
+        readConversation: typeof findMessages === "function",
+        observeConversation: typeof observeConversation === "function",
+        sendMessage: typeof sendMessage === "function",
+        observePage: typeof observePageState === "function"
+      }
+    };
+  }
+
   function inspect() {
     const adapter = getAdapter();
     const composer = adapter?.findComposer?.() || null;
@@ -317,6 +344,7 @@
     getConversationId,
     getConversationSnapshot,
     getPageState,
+    getCapabilities,
     observeConversation,
     observePageState,
     observeMessages,
@@ -332,6 +360,7 @@
   });
 
   window.ANZUBA_AI_BRIDGE?.on("ai.adapter.inspect", () => inspect());
+  window.ANZUBA_AI_BRIDGE?.on("ai.capabilities", () => getCapabilities());
   window.ANZUBA_AI_BRIDGE?.on("ai.message.list", () => findMessages());
   window.ANZUBA_AI_BRIDGE?.on("ai.conversation.context", () => getConversationContext());
   window.ANZUBA_AI_BRIDGE?.on("ai.conversation.snapshot", () => getConversationSnapshot());
