@@ -6,6 +6,10 @@ ANZUBA é uma extensão de navegador que evoluirá para um sistema operacional v
 
 O projeto será desenvolvido em 275 etapas, com cada etapa sendo implementada, testada e aprovada antes da próxima.
 
+### Etapa 13/275 — Adaptadores dos sites de IA
+
+O ANZUBA agora possui uma camada de adaptadores para os sites de IA suportados. Cada IA possui uma identidade própria dentro do núcleo e uma interface comum para localizar elementos de interação da página, começando pelo campo de composição da mensagem. A camada expõe `window.ANZUBA_AI_ADAPTERS`, permite inspecionar se o adaptador e o compositor foram encontrados e registra o comando `ai.adapter.inspect` na ponte. Isso separa a lógica específica de cada site do restante do ANZUBA e prepara a comunicação bidirecional das próximas etapas.
+
 ### Etapa 12/275 — Protocolo de comandos da IA
 
 A ponte de IA agora possui um protocolo interno de comandos. Módulos do ANZUBA podem registrar comandos com `on()` e executá-los com `request()`, recebendo o contexto atual do projeto e da IA. Cada execução recebe um ID e emite eventos de início, conclusão ou erro. O comando `context.get` já está disponível como primeiro comando nativo. Essa camada prepara a comunicação estruturada entre a IA e os recursos do ANZUBA.
