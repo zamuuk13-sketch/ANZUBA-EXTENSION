@@ -256,8 +256,12 @@
     syncChatState(id || state.activeId)
   );
 
-  window.addEventListener("ai:conversation-changed", () => { syncChatState().catch(() => {}); });
-  window.addEventListener("ai:page-changed", () => { syncChatState().catch(() => {}); });
+  window.addEventListener("anzuba:ai-event", event => {
+    const type = event.detail?.type;
+    if (type === "ai:conversation-changed" || type === "ai:page-changed") {
+      syncChatState().catch(() => {});
+    }
+  });
 
   window.ANZUBA_PROJECTS = {
     getAll: () => [...state.projects],
