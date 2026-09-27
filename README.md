@@ -6,10 +6,6 @@ O ANZUBA agora consegue exportar o projeto ativo para um arquivo JSON próprio. 
 
 A mesma operação também está disponível internamente pelo comando `project.export` e pela API `window.ANZUBA_PROJECTS.exportProject`.
 
-### Etapa 29/275 — Microanimações e feedback visual
-
-A interface do ANZUBA recebeu microanimações suaves para menus, itens de projetos e conversas, botões, notificações e diálogo de criação. Os menus entram com movimento e escala sutis, itens aparecem em sequência curta e ações têm feedback de pressão. A animação respeita `prefers-reduced-motion` para usuários que optam por reduzir movimento.
-
 ### Etapa 29/275 — Importação de projetos
 
 O ANZUBA agora consegue importar projetos salvos em um arquivo JSON próprio. O menu do projeto ganhou **Importar projeto**, que abre o seletor de arquivos e valida o formato (`anzuba-project`) e a versão antes de aceitar os dados. O projeto importado recebe um novo ID para não sobrescrever projetos existentes, passa a ser o projeto ativo e preserva seus dados, IA associada e ambiente persistido. A mesma operação também fica disponível internamente por `project.import` e pela API `window.ANZUBA_PROJECTS.importProjectFromFile`.
