@@ -6,6 +6,10 @@ ANZUBA é uma extensão de navegador que evoluirá para um sistema operacional v
 
 O projeto será desenvolvido em 275 etapas, com cada etapa sendo implementada, testada e aprovada antes da próxima.
 
+### Etapa 12/275 — Protocolo de comandos da IA
+
+A ponte de IA agora possui um protocolo interno de comandos. Módulos do ANZUBA podem registrar comandos com `on()` e executá-los com `request()`, recebendo o contexto atual do projeto e da IA. Cada execução recebe um ID e emite eventos de início, conclusão ou erro. O comando `context.get` já está disponível como primeiro comando nativo. Essa camada prepara a comunicação estruturada entre a IA e os recursos do ANZUBA.
+
 ### Etapa 11/275 — Ponte de integração com IA
 
 O ANZUBA agora possui uma camada padronizada de integração com a IA detectada. A ponte fornece identidade da IA, contexto básico da página, projeto ativo e capacidades disponíveis do ANZUBA sem acoplar o núcleo a um provedor específico. Também existe um sistema interno de eventos para as próximas integrações.
