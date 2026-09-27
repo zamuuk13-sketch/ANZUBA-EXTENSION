@@ -15,6 +15,8 @@
 
     applyActiveProject();
     renderProjectMenu();
+    const active = getActiveProject();
+    if (active) window.dispatchEvent(new CustomEvent("anzuba:project-changed", { detail: { ...active } }));
   }
 
   async function saveProjects() {
