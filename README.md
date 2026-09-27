@@ -6,6 +6,10 @@ ANZUBA é uma extensão de navegador que evoluirá para um sistema operacional v
 
 O projeto será desenvolvido em 275 etapas, com cada etapa sendo implementada, testada e aprovada antes da próxima.
 
+### Etapa 22/275 — Chat vinculado ao projeto
+
+O ANZUBA agora vincula o chat atual ao projeto ativo. O projeto pode guardar IA, URL, título, identificador da conversa, quantidade de mensagens e horário da última sincronização. O estado é atualizado quando a conversa ou a página muda e pode ser consultado com `chat.state` ou sincronizado manualmente com `chat.bind`. Isso cria a base para o projeto acompanhar uma conversa específica da IA sem misturar chats de projetos diferentes.
+
 ### Etapa 21/275 — Metadados e resumo estruturado de projetos
 
 O sistema de projetos agora consegue gerar um resumo seguro e padronizado de um projeto, incluindo ID, nome, IA associada, datas, existência de dados e quais áreas de dados estão presentes. O comando `project.summary` permite consultar o projeto ativo ou um projeto específico sem expor todo o conteúdo interno.
