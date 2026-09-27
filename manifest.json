@@ -32,6 +32,7 @@
         "src/core/material-manager.js",
         "src/core/resource-manager.js",
         "src/core/environment-manager.js",
+        "src/core/os-manager.js",
         "src/core/ai-adapters.js",
         "src/content.js"
       ],
