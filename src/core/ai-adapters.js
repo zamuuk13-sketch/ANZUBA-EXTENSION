@@ -133,14 +133,24 @@
 
   function findMessages() {
     const candidates = Array.from(document.querySelectorAll(
-      '[data-message-author-role="assistant"], [data-message-author-role="model"], [data-testid*="assistant" i], [data-testid*="model" i]'
+      '[data-message-author-role="user"], [data-message-author-role="assistant"], [data-message-author-role="model"], [data-testid*="user" i], [data-testid*="assistant" i], [data-testid*="model" i]'
     ));
 
     return candidates.map((element, index) => ({
       index,
-      role: element.getAttribute("data-message-author-role") || "assistant",
+      role: element.getAttribute("data-message-author-role") ||
+        (element.matches('[data-testid*="user" i]') ? "user" : "assistant"),
       text: (element.innerText || element.textContent || "").trim()
     })).filter(message => message.text);
+  }
+
+  function getConversationContext() {
+    return {
+      ai: getAdapter()?.id || null,
+      url: location.href,
+      title: document.title,
+      messages: findMessages()
+    };
   }
 
   function observeMessages(onMessage) {
@@ -197,6 +207,7 @@
     setComposerValue,
     sendMessage,
     findMessages,
+    getConversationContext,
     observeMessages,
     getSupported: () => Object.values(adapters).map(({ id, name }) => ({ id, name }))
   };
@@ -211,6 +222,7 @@
 
   window.ANZUBA_AI_BRIDGE?.on("ai.adapter.inspect", () => inspect());
   window.ANZUBA_AI_BRIDGE?.on("ai.message.list", () => findMessages());
+  window.ANZUBA_AI_BRIDGE?.on("ai.conversation.context", () => getConversationContext());
 
   window.ANZUBA_AI_BRIDGE?.on("ai.message.observe", ({ enabled = true }) => {
     if (!enabled) return { observing: false };
