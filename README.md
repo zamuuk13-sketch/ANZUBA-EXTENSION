@@ -1,5 +1,9 @@
 # ANZUBA
 
+### Etapa 28/275 — Seletor visual de conversas
+
+O menu do projeto agora possui uma área **Conversas do projeto**. Ela lista as sessões persistidas, mostra título e quantidade de mensagens, destaca a sessão ativa e permite trocar a sessão diretamente pela interface. A seleção continua sendo persistida pelo gerenciador de sessões da etapa 27. A interface não tenta controlar a navegação interna do site da IA; ela apenas controla qual sessão persistida do ANZUBA está ativa.
+
 ### Etapa 27/275 — Gerenciador de sessão ativa do chat
 
 O projeto agora possui uma sessão de chat ativa explícita. A sessão atual é marcada automaticamente durante a sincronização e pode ser consultada com `chat.session.active` ou selecionada com `chat.session.select`. A seleção é persistida dentro do projeto e dispara `anzuba:chat-session-changed`, permitindo que a futura interface de histórico alterne entre conversas sem misturar os dados. Esta etapa gerencia a sessão persistida internamente; ela não tenta alterar ou navegar a conversa do site da IA.
