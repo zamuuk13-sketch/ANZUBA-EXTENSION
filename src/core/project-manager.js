@@ -1,15 +1,58 @@
 (() => {
   const STORAGE_KEY = "anzubaProjects";
-  const state = { projects: [] };
+  const ACTIVE_KEY = "anzubaActiveProject";
+  const state = { projects: [], activeId: null };
 
   async function loadProjects() {
-    const data = await chrome.storage.local.get(STORAGE_KEY);
+    const data = await chrome.storage.local.get([STORAGE_KEY, ACTIVE_KEY]);
     state.projects = Array.isArray(data[STORAGE_KEY]) ? data[STORAGE_KEY] : [];
+    state.activeId = data[ACTIVE_KEY] || null;
+
+    if (state.activeId && !state.projects.some(project => project.id === state.activeId)) {
+      state.activeId = null;
+      await chrome.storage.local.remove(ACTIVE_KEY);
+    }
+
+    applyActiveProject();
     renderProjectMenu();
   }
 
   async function saveProjects() {
     await chrome.storage.local.set({ [STORAGE_KEY]: state.projects });
+  }
+
+  async function setActiveProject(id) {
+    const project = state.projects.find(item => item.id === id);
+    if (!project) return false;
+
+    state.activeId = project.id;
+    project.updatedAt = new Date().toISOString();
+
+    await chrome.storage.local.set({
+      [STORAGE_KEY]: state.projects,
+      [ACTIVE_KEY]: state.activeId
+    });
+
+    applyActiveProject();
+    renderProjectMenu();
+    showNotification("Projeto aberto • " + project.name);
+    window.dispatchEvent(new CustomEvent("anzuba:project-changed", { detail: { ...project } }));
+    return true;
+  }
+
+  function getActiveProject() {
+    return state.projects.find(project => project.id === state.activeId) || null;
+  }
+
+  function applyActiveProject() {
+    const project = getActiveProject();
+    if (project) {
+      document.documentElement.dataset.anzubaProject = project.id;
+      document.documentElement.dataset.anzubaProjectName = project.name;
+    } else {
+      delete document.documentElement.dataset.anzubaProject;
+      delete document.documentElement.dataset.anzubaProjectName;
+    }
   }
 
   function openProjectDialog() {
@@ -37,23 +80,31 @@
       const name = input.value.trim();
       if (!name) { input.focus(); return; }
 
+      const now = new Date().toISOString();
       const project = {
         id: crypto.randomUUID(),
         name,
         ai: document.documentElement.dataset.anzubaAi || null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        createdAt: now,
+        updatedAt: now,
+        data: {}
       };
 
       state.projects.unshift(project);
-      await saveProjects();
-      document.documentElement.dataset.anzubaProject = project.id;
+      state.activeId = project.id;
+      await chrome.storage.local.set({
+        [STORAGE_KEY]: state.projects,
+        [ACTIVE_KEY]: state.activeId
+      });
+
+      applyActiveProject();
       close();
       renderProjectMenu();
       showNotification("Projeto criado • " + project.name);
+      window.dispatchEvent(new CustomEvent("anzuba:project-changed", { detail: { ...project } }));
     };
 
-    create && backdrop.querySelector(".anzuba-project-create").addEventListener("click", create);
+    backdrop.querySelector(".anzuba-project-create").addEventListener("click", create);
     input.addEventListener("keydown", e => { if (e.key === "Enter") create(); });
   }
 
@@ -82,7 +133,10 @@
     const button = document.createElement("button");
     button.type = "button";
     button.className = "anzuba-project-button";
-    button.textContent = "Novo projeto Anzuba";
+    button.textContent = state.activeId
+      ? (getActiveProject()?.name || "Novo projeto Anzuba")
+      : "Novo projeto Anzuba";
+    button.title = "Criar novo projeto";
     button.addEventListener("click", openProjectDialog);
 
     const arrow = document.createElement("button");
@@ -95,15 +149,22 @@
     menu.className = "anzuba-project-menu";
     menu.hidden = true;
 
+    if (state.projects.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "anzuba-project-empty";
+      empty.textContent = "Nenhum projeto criado";
+      menu.appendChild(empty);
+    }
+
     for (const project of state.projects) {
       const item = document.createElement("button");
       item.type = "button";
       item.className = "anzuba-project-item";
+      item.dataset.active = String(project.id === state.activeId);
       item.textContent = project.name;
       item.addEventListener("click", () => {
-        document.documentElement.dataset.anzubaProject = project.id;
         menu.hidden = true;
-        showNotification("Projeto aberto • " + project.name);
+        setActiveProject(project.id);
       });
       menu.appendChild(item);
     }
@@ -115,7 +176,10 @@
 
   window.ANZUBA_PROJECTS = {
     getAll: () => [...state.projects],
-    create: openProjectDialog
+    getActive: getActiveProject,
+    create: openProjectDialog,
+    setActive: setActiveProject,
+    save: saveProjects
   };
 
   loadProjects();
