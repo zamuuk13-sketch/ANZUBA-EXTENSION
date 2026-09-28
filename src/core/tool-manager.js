@@ -604,12 +604,56 @@
     return changed;
   }
 
+  async function validateExecutable(name, id) {
+    const pid = projectId(id);
+    const value = String(name || "").trim();
+    if (!value) return { projectId: pid, name: value, ok: false, reason: "invalid-name" };
+
+    const resolved = await resolveExecutable(value, pid);
+    if (!resolved) return { projectId: pid, name: value, ok: false, reason: "not-installed" };
+
+    const tool = await get(resolved.toolId, pid);
+    if (!tool || tool.status !== "installed") {
+      return { projectId: pid, name: value, ok: false, reason: "tool-not-installed" };
+    }
+
+    const fs = await window.ANZUBA_FS?.get?.(pid);
+    const entry = fs?.[resolved.path];
+    if (!entry || entry.type !== "file") {
+      return { projectId: pid, name: value, ok: false, reason: "missing-filesystem-entry", ...resolved };
+    }
+
+    const executableMode = Number.parseInt(String(entry.mode || "755"), 8);
+    if (!Number.isFinite(executableMode) || (executableMode & 0o111) === 0) {
+      return { projectId: pid, name: value, ok: false, reason: "not-executable", ...resolved };
+    }
+
+    const env = await window.ANZUBA_ENV?.get?.(pid);
+    const pathEntries = Array.isArray(env?.PATH) ? env.PATH : [];
+    const directory = resolved.path.slice(0, resolved.path.lastIndexOf("/")) || "/";
+    const onPath = pathEntries.includes(directory);
+
+    return {
+      projectId: pid,
+      name: value,
+      ok: onPath,
+      reason: onPath ? null : "not-in-path",
+      path: resolved.path,
+      toolId: resolved.toolId,
+      toolName: resolved.toolName,
+      version: resolved.version,
+      args: resolved.args || [],
+      onPath
+    };
+  }
+
   async function executeExecutable(name, options = {}, id) {
     const pid = projectId(id);
     const value = String(name || "").trim();
     if (!value) throw new Error("Executável inválido.");
 
-    const resolved = await resolveExecutable(value, pid);
+    const validation = await validateExecutable(value, pid);
+    const resolved = validation.ok ? await resolveExecutable(value, pid) : null;
     if (!resolved) {
       return {
         projectId: pid,
@@ -824,6 +868,7 @@
     setExecutables,
     getExecutables,
     resolveExecutable,
+    validateExecutable,
     syncExecutables,
     executeExecutable
   };
@@ -832,6 +877,7 @@
   window.ANZUBA_AI_BRIDGE?.on("tools.executables.get", ({ toolId, id } = {}) => getExecutables(toolId, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executable.resolve", ({ name, id } = {}) => resolveExecutable(name, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executables.sync", ({ id } = {}) => syncExecutables(id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.executable.validate", ({ name, id } = {}) => validateExecutable(name, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executable.run", ({ name, args, cwd, user, id } = {}) => executeExecutable(name, { args, cwd, user }, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.search", ({ query, id } = {}) => catalog(query || {}, id));
