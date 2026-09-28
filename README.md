@@ -453,3 +453,8 @@ A Game Engine agora permite duplicar uma cena completa dentro do projeto. A cóp
 ### Etapa 112/275 — Configurações de cena
 
 A Game Engine agora permite consultar e alterar configurações persistentes de cada cena, incluindo gravidade e câmera ativa. A câmera definida é validada contra as entidades da própria cena, valores de gravidade inválidos são rejeitados e tudo permanece isolado por projeto. Bridge: `game.scene.settings.get` e `game.scene.settings.set`.
+
+
+### Etapa 113/275 — Controle de gravidade da cena
+
+A Game Engine agora possui operações dedicadas para consultar e alterar a gravidade de uma cena. Os valores passam pela mesma validação das configurações gerais, permanecem persistentes e isolados por projeto e estão disponíveis pelo AI Bridge através de `game.scene.gravity.get` e `game.scene.gravity.set`.
