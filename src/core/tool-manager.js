@@ -211,6 +211,79 @@
     return matches.length ? matches : null;
   }
 
+  async function detectLanguage(filePath, content = "", id) {
+    const pid = projectId(id);
+    const byExtension = await findLanguageByFile(filePath, pid);
+    if (byExtension?.length) {
+      return {
+        projectId: pid,
+        method: "extension",
+        filePath: String(filePath || ""),
+        language: byExtension[0],
+        matches: byExtension
+      };
+    }
+
+    const text = String(content || "");
+    const firstLine = text.split(/\r?\n/, 1)[0].trim();
+    const shebang = firstLine.match(/^#!\\s*(?:\\/usr\\/bin\\/env\\s+)?([A-Za-z0-9._-]+)/);
+    if (shebang) {
+      const executable = shebang[1].toLowerCase();
+      const runtimes = await listLanguageRuntimes(pid);
+      const matches = runtimes
+        .filter(tool => (tool.executables || []).some(item => String(item?.name || "").toLowerCase() === executable))
+        .map(tool => ({
+          id: tool.languageId || tool.id,
+          name: tool.languageName || tool.name,
+          runtimeId: tool.id,
+          runtimeInstalled: tool.status === "installed",
+          executable
+        }));
+      if (matches.length) {
+        return {
+          projectId: pid,
+          method: "shebang",
+          filePath: String(filePath || ""),
+          language: matches[0],
+          matches
+        };
+      }
+    }
+
+    const trimmed = text.trim();
+    const hints = [];
+    if (/^\\s*(import|from)\\s+.+\\s+import\\s+|^\\s*def\\s+\\w+\\s*\\(/m.test(trimmed)) hints.push("python");
+    if (/^\\s*(const|let|var)\\s+|=>\\s*[{(]|console\\.log\\s*\\(/m.test(trimmed)) hints.push("javascript");
+    if (/#include\\s*[<\"]|\\b(int|float|double|std::string)\\s+\\w+\\s*[=;(]/m.test(trimmed)) hints.push("cpp");
+
+    if (hints.length) {
+      const runtimes = await listLanguageRuntimes(pid);
+      const matches = hints.map(hint => runtimes.find(tool => tool.languageId === hint)).filter(Boolean).map(tool => ({
+        id: tool.languageId || tool.id,
+        name: tool.languageName || tool.name,
+        runtimeId: tool.id,
+        runtimeInstalled: tool.status === "installed"
+      }));
+      if (matches.length) {
+        return {
+          projectId: pid,
+          method: "content",
+          filePath: String(filePath || ""),
+          language: matches[0],
+          matches
+        };
+      }
+    }
+
+    return {
+      projectId: pid,
+      method: "unknown",
+      filePath: String(filePath || ""),
+      language: null,
+      matches: []
+    };
+  }
+
   async function health(id) {
     const pid = projectId(id);
     const tools = await getAll(pid);
@@ -1024,6 +1097,7 @@
     setLanguageRuntimeConfig,
     registerLanguage,
     findLanguageByFile,
+    detectLanguage,
     syncExecutables,
     executeExecutable
   };
@@ -1039,6 +1113,7 @@
   window.ANZUBA_AI_BRIDGE?.on("tools.runtime.config.set", ({ name, config, id } = {}) => setLanguageRuntimeConfig(name, config, id));
   window.ANZUBA_AI_BRIDGE?.on("language.register", ({ language, id } = {}) => registerLanguage(language, id));
   window.ANZUBA_AI_BRIDGE?.on("language.detectFile", ({ filePath, id } = {}) => findLanguageByFile(filePath, id));
+  window.ANZUBA_AI_BRIDGE?.on("language.detect", ({ filePath, content, id } = {}) => detectLanguage(filePath, content, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executable.run", ({ name, args, cwd, user, id } = {}) => executeExecutable(name, { args, cwd, user }, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.search", ({ query, id } = {}) => catalog(query || {}, id));
