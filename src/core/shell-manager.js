@@ -2,6 +2,7 @@
   const KEY = "shell";
   const MAX_HISTORY = 100;
   const clone = value => JSON.parse(JSON.stringify(value));
+  const commandRegistry = new Map();
 
   function projectId(projectId) {
     return projectId || window.ANZUBA_PROJECTS?.getActive?.()?.id || null;
@@ -137,6 +138,29 @@
     return { stdout: ["PID\tUSER\tSTATE\tCOMMAND", ...list.map(x => [x.pid, x.user, x.state, x.command].join("\t"))].join("\n") };
   }
 
+  function registerCommand(name, handler, options = {}) {
+    const command = String(name || "").trim();
+    if (!command || typeof handler !== "function") return false;
+    commandRegistry.set(command, {
+      handler,
+      description: String(options.description || "").slice(0, 200),
+      user: String(options.user || "ai")
+    });
+    return true;
+  }
+
+  function unregisterCommand(name) {
+    return commandRegistry.delete(String(name || "").trim());
+  }
+
+  function listCommands() {
+    return [...commandRegistry.entries()].map(([name, item]) => ({
+      name,
+      description: item.description,
+      user: item.user
+    }));
+  }
+
   async function findExecutable(name, project) {
     const target = String(name || "").trim();
     if (!target) return null;
@@ -187,7 +211,47 @@
       case "uname": { const os = await window.ANZUBA_OS.status(); result = { stdout: "ANZUBA OS " + (os?.version || "0.1.0") + " " + (os?.architecture || "wasm32") }; break; }
       case "clear": result = { clear: true }; break;
       case "help": result = { stdout: "pwd cd ls cat mkdir touch echo env export whoami ps uname clear help" }; break;
-      default: { const executable = await findExecutable(command, id); result = executable ? { stderr: executable + ": executável virtual encontrado, mas ainda não possui runtime de execução", exitCode: 126 } : { stderr: command + ": comando não encontrado", exitCode: 127 }; break; }
+      default: {
+        const registered = commandRegistry.get(command);
+        if (registered) {
+          const process = await window.ANZUBA_PROCESSES.spawn({
+            name: command,
+            command,
+            args,
+            user: registered.user,
+            cwd: value.cwd
+          }, id);
+          if (!process) {
+            result = { stderr: command + ": não foi possível iniciar o processo", exitCode: 1 };
+            break;
+          }
+          try {
+            const output = await registered.handler({
+              command,
+              args: [...args],
+              cwd: value.cwd,
+              projectId: id,
+              env: await window.ANZUBA_ENV.get(id),
+              pid: process.pid
+            });
+            await window.ANZUBA_PROCESSES.terminate(process.pid, Number(output?.exitCode ?? 0), id);
+            result = {
+              stdout: output?.stdout || "",
+              stderr: output?.stderr || "",
+              exitCode: Number(output?.exitCode ?? 0)
+            };
+          } catch (error) {
+            await window.ANZUBA_PROCESSES.terminate(process.pid, 1, id);
+            result = { stderr: String(error?.message || "erro durante a execução"), exitCode: 1 };
+          }
+        } else {
+          const executable = await findExecutable(command, id);
+          result = executable
+            ? { stderr: executable + ": executável virtual encontrado, mas nenhum runtime está registrado para este comando", exitCode: 126 }
+            : { stderr: command + ": comando não encontrado", exitCode: 127 };
+        }
+        break;
+      }
     }
     await save(value, id);
     return { command, stdout: String(result.stdout || ""), stderr: String(result.stderr || ""), exitCode: Number(result.exitCode || 0), clear: Boolean(result.clear), cwd: value.cwd };
@@ -205,7 +269,7 @@
     return save(value, project);
   }
 
-  window.ANZUBA_SHELL = { tokenize, resolvePath, execute, history, clearHistory, findExecutable };
+  window.ANZUBA_SHELL = { tokenize, resolvePath, execute, history, clearHistory, findExecutable, registerCommand, unregisterCommand, listCommands };
   window.ANZUBA_AI_BRIDGE?.on("shell.exec", ({ command, id } = {}) => execute(command, id));
   window.ANZUBA_AI_BRIDGE?.on("shell.history", ({ id } = {}) => history(id));
   window.ANZUBA_AI_BRIDGE?.on("shell.history.clear", ({ id } = {}) => clearHistory(id));
