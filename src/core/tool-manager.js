@@ -604,6 +604,86 @@
     return changed;
   }
 
+  async function executeExecutable(name, options = {}, id) {
+    const pid = projectId(id);
+    const value = String(name || "").trim();
+    if (!value) throw new Error("Executável inválido.");
+
+    const resolved = await resolveExecutable(value, pid);
+    if (!resolved) {
+      return {
+        projectId: pid,
+        name: value,
+        ok: false,
+        exitCode: 127,
+        error: "Executável não encontrado."
+      };
+    }
+
+    const tool = await get(resolved.toolId, pid);
+    if (!tool || tool.status !== "installed") {
+      return {
+        projectId: pid,
+        name: value,
+        ok: false,
+        exitCode: 126,
+        error: "Ferramenta não está instalada."
+      };
+    }
+
+    const compatibility = await validateCompatibility(tool.id, pid);
+    if (compatibility && !compatibility.ok) {
+      return {
+        projectId: pid,
+        name: value,
+        ok: false,
+        exitCode: 126,
+        error: "Ferramenta incompatível.",
+        issues: compatibility.issues
+      };
+    }
+
+    const args = Array.isArray(options.args) ? options.args.map(String).slice(0, 50) : [];
+    const command = value;
+    const cwd = String(options.cwd || "/workspace");
+    const user = String(options.user || "ai");
+
+    if (!window.ANZUBA_PROCESSES?.spawn) {
+      return {
+        projectId: pid,
+        name: value,
+        ok: false,
+        exitCode: 127,
+        error: "Runtime de processos não disponível."
+      };
+    }
+
+    const process = await window.ANZUBA_PROCESSES.spawn({
+      name: tool.name + ":" + value,
+      command,
+      args: [...(resolved.args || []), ...args],
+      user,
+      cwd
+    });
+
+    return {
+      projectId: pid,
+      name: value,
+      ok: true,
+      exitCode: null,
+      process,
+      tool: {
+        id: tool.id,
+        name: tool.name,
+        version: tool.version || null
+      },
+      executable: {
+        path: resolved.path,
+        args: resolved.args || []
+      }
+    };
+  }
+
   async function updateMetadata(toolId, metadata = {}, id) {
     const pid = projectId(id);
     const tools = await getAll(pid);
@@ -744,13 +824,15 @@
     setExecutables,
     getExecutables,
     resolveExecutable,
-    syncExecutables
+    syncExecutables,
+    executeExecutable
   };
 
   window.ANZUBA_AI_BRIDGE?.on("tools.executables.set", ({ toolId, executables, id } = {}) => setExecutables(toolId, executables || [], id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executables.get", ({ toolId, id } = {}) => getExecutables(toolId, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executable.resolve", ({ name, id } = {}) => resolveExecutable(name, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executables.sync", ({ id } = {}) => syncExecutables(id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.executable.run", ({ name, args, cwd, user, id } = {}) => executeExecutable(name, { args, cwd, user }, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.search", ({ query, id } = {}) => catalog(query || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.recommend", ({ query, id } = {}) => recommend(query || {}, id));
