@@ -109,6 +109,7 @@
     if (!request) return { projectId: pid, ok: false, reason: "prompt-empty" };
 
     const task = detectTask(request);
+    const analysis = analyzeRequirements(request, task);
     const steps = makeSteps(request, task);
     const now = new Date().toISOString();
     const plan = {
@@ -116,6 +117,7 @@
       projectId: pid,
       request,
       task,
+      analysis,
       priority: ["low", "normal", "high"].includes(options.priority) ? options.priority : "normal",
       status: "planned",
       currentStep: null,
@@ -169,7 +171,9 @@
     createProgramPlan,
     getProgramPlan,
     updateProgramPlan,
-    listProgramPlans
+    listProgramPlans,
+    analyzeRequirements,
+    getPlanStep
   };
 
   window.ANZUBA_AI_BRIDGE?.on("ai.program.requirements.analyze", ({ prompt, id } = {}) => {
