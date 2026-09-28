@@ -58,14 +58,25 @@
       return initial;
     }
 
+    const stored = data[OS_KEY];
+    const identityUsers = await window.ANZUBA_USERS?.list?.(id);
+    const users = Array.isArray(identityUsers) && identityUsers.length
+      ? identityUsers.map(user => ({
+          name: user.username,
+          uid: user.uid,
+          home: user.home,
+          shell: user.shell
+        }))
+      : (Array.isArray(stored.users) ? clone(stored.users) : clone(DEFAULT_OS.users));
+
     return {
       ...clone(DEFAULT_OS),
-      ...clone(data[OS_KEY]),
-      cpu: { ...clone(DEFAULT_OS.cpu), ...(data[OS_KEY].cpu || {}) },
-      memory: { ...clone(DEFAULT_OS.memory), ...(data[OS_KEY].memory || {}) },
-      disk: { ...clone(DEFAULT_OS.disk), ...(data[OS_KEY].disk || {}) },
-      users: Array.isArray(data[OS_KEY].users) ? clone(data[OS_KEY].users) : clone(DEFAULT_OS.users),
-      root: { ...clone(DEFAULT_OS.root), ...(data[OS_KEY].root || {}) }
+      ...clone(stored),
+      cpu: { ...clone(DEFAULT_OS.cpu), ...(stored.cpu || {}) },
+      memory: { ...clone(DEFAULT_OS.memory), ...(stored.memory || {}) },
+      disk: { ...clone(DEFAULT_OS.disk), ...(stored.disk || {}) },
+      users,
+      root: { ...clone(DEFAULT_OS.root), ...(stored.root || {}) }
     };
   }
 
