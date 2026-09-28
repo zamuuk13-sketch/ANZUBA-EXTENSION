@@ -251,6 +251,12 @@ Adicionada a execução virtual de executáveis instalados. A IA pode usar `ANZU
 Adicionado o primeiro suporte da camada de linguagens e desenvolvimento. O Tool Manager agora consegue registrar runtimes de linguagem instalados no projeto, associando versão, comando executável, origem e metadados. A IA pode usar `ANZUBA_TOOLS.registerLanguageRuntime` e `ANZUBA_TOOLS.listLanguageRuntimes`, ou os comandos `tools.runtime.register` e `tools.runtime.list`. Os runtimes registrados são sincronizados com o PATH virtual do projeto.
 
 
+
+### Etapa 67/275 — Configuração de runtimes
+
+Os runtimes de linguagem agora possuem configuração persistente por projeto. A IA pode consultar um runtime específico e definir variáveis de ambiente e diretório de trabalho padrão através de `ANZUBA_TOOLS.getLanguageRuntime` e `ANZUBA_TOOLS.setLanguageRuntimeConfig`, ou pelos comandos `tools.runtime.get` e `tools.runtime.config.set`.
+
+
 ### Etapa 59/275 — Catálogo inteligente de ferramentas
 
 O Tool Manager agora possui busca e recomendação local de ferramentas, com filtros por tipo/status, pontuação por relevância, prioridade para correspondência de nome e limite controlado de resultados. Tudo permanece isolado por projeto.
