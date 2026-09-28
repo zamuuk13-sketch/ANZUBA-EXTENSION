@@ -500,6 +500,35 @@
     };
   }
 
+  async function runProgramBuild(planId, options = {}, id) {
+    const pid = projectId(id);
+    const plan = await getProgramPlan(planId, pid);
+    if (!plan) return { projectId: pid, ok: false, reason: "plan-not-found" };
+    if (!window.ANZUBA_TOOLS?.runBuildPipeline) return { projectId: pid, ok: false, reason: "build-system-unavailable" };
+    const sourcePath = String(options.sourcePath || plan.workspace?.entryPath || "").trim();
+    if (!sourcePath) return { projectId: pid, ok: false, reason: "source-path-required" };
+    let compilerId = String(options.compilerId || "").trim();
+    if (!compilerId && window.ANZUBA_TOOLS.findCompilerForLanguage) {
+      const compiler = await window.ANZUBA_TOOLS.findCompilerForLanguage(plan.task?.language, pid);
+      compilerId = String(compiler?.id || "").trim();
+    }
+    if (!compilerId) return { projectId: pid, ok: false, reason: "compiler-not-found" };
+    const result = await window.ANZUBA_TOOLS.runBuildPipeline(sourcePath, compilerId, {
+      output: options.output || null,
+      args: Array.isArray(options.args) ? options.args.slice(0, 50) : [],
+      cwd: options.cwd || plan.workspace?.root || "/workspace",
+      user: options.user || "ai",
+      environment: options.environment || {}
+    }, pid);
+    const ok = Boolean(result?.ok);
+    const updated = await updateProgramPlan(plan.id, {
+      status: ok ? "running" : "failed",
+      stepId: "build",
+      stepStatus: ok ? "completed" : "failed"
+    }, pid);
+    return { projectId: pid, ok, planId: plan.id, sourcePath, compilerId, result, plan: updated };
+  }
+
   async function getProgramPlan(planId, id) {
     const plans = await getPlans(id);
     return plans.find(plan => plan.id === String(planId || "").trim()) || null;
@@ -543,6 +572,7 @@
     generateImplementation,
     validateProgramImplementation,
     prepareProgramBuild,
+    runProgramBuild,
     prepareProgramWorkspace,
     updateProgramPlan,
     listProgramPlans,
@@ -562,6 +592,8 @@
     getProgramPlan(planId, id));
   window.ANZUBA_AI_BRIDGE?.on("ai.program.scaffold", ({ planId, options, id } = {}) =>
     scaffoldProgram(planId, options || {}, id));
+
+  window.ANZUBA_AI_BRIDGE?.on("ai.program.build.run", ({ planId, options, id } = {}) => runProgramBuild(planId, options || {}, id));
 
   window.ANZUBA_AI_BRIDGE?.on("ai.program.build.prepare", ({ planId, options, id } = {}) =>
     prepareProgramBuild(planId, options || {}, id));
