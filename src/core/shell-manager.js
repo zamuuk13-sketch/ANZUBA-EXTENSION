@@ -70,7 +70,7 @@
 
   async function ls(args, value, project) {
     const target = resolvePath(args.find(x => !x.startsWith("-")) || ".", value.cwd);
-    const fs = await window.ANZUBA_FS.get();
+    const fs = await window.ANZUBA_FS.get(project);
     if (fs?.[target]?.type === "file") return { stdout: target };
     const key = target === "/" ? "/" : target + "/";
     if (!fs?.[key] && target !== "/") return { stderr: "ls: caminho não encontrado: " + target, exitCode: 1 };
@@ -117,6 +117,35 @@
       if (!await window.ANZUBA_FS.writeFile(path, "", project, { username: await currentUser(project) })) return { stderr: "touch: permissão negada: " + arg, exitCode: 1 };
     }
     return {};
+  }
+
+  async function stat(args, value, project) {
+    if (!args.length) return { stderr: "stat: informe um caminho", exitCode: 1 };
+    const info = await window.ANZUBA_FS.metadata(args[0], project);
+    if (!info) return { stderr: "stat: caminho não encontrado: " + args[0], exitCode: 1 };
+    if (!(await window.ANZUBA_USERS?.checkAccess?.(info, await currentUser(project), "r", project))) {
+      return { stderr: "stat: permissão negada: " + args[0], exitCode: 1 };
+    }
+    return { stdout: [
+      "File: " + info.path,
+      "Type: " + info.type,
+      "Owner: " + info.owner,
+      "Group: " + info.group,
+      "Mode: " + info.mode,
+      "Size: " + info.size
+    ].join("\n") };
+  }
+
+  async function chmod(args, value, project) {
+    if (args.length < 2) return { stderr: "chmod: use MODE CAMINHO", exitCode: 1 };
+    const ok = await window.ANZUBA_FS.chmod(args[1], args[0], project, { username: await currentUser(project) });
+    return ok ? {} : { stderr: "chmod: operação não permitida", exitCode: 1 };
+  }
+
+  async function chown(args, value, project) {
+    if (args.length < 2) return { stderr: "chown: use USUARIO CAMINHO", exitCode: 1 };
+    const ok = await window.ANZUBA_FS.chown(args[1], args[0], project, { username: await currentUser(project) });
+    return ok ? {} : { stderr: "chown: operação não permitida", exitCode: 1 };
   }
 
   async function expandVariables(tokens) {
@@ -190,6 +219,9 @@
       case "cd": result = await cd(args, value, id); break;
       case "ls": result = await ls(args, value, id); break;
       case "cat": result = await cat(args, value, id); break;
+      case "stat": result = await stat(args, value, id); break;
+      case "chmod": result = await chmod(args, value, id); break;
+      case "chown": result = await chown(args, value, id); break;
       case "mkdir": result = await mkdir(args, value, id); break;
       case "touch": result = await touch(args, value, id); break;
       case "echo": result = { stdout: args.join(" ") }; break;
@@ -210,7 +242,7 @@
       case "ps": result = await processes(); break;
       case "uname": { const os = await window.ANZUBA_OS.status(); result = { stdout: "ANZUBA OS " + (os?.version || "0.1.0") + " " + (os?.architecture || "wasm32") }; break; }
       case "clear": result = { clear: true }; break;
-      case "help": result = { stdout: "pwd cd ls cat mkdir touch echo env export whoami ps uname clear help" }; break;
+      case "help": result = { stdout: "pwd cd ls cat stat chmod chown mkdir touch echo env export whoami ps uname clear help" }; break;
       default: {
         const registered = commandRegistry.get(command);
         if (registered) {
