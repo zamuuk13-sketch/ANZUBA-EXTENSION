@@ -3,14 +3,54 @@
   "name": "ANZUBA",
   "version": "0.2.0",
   "description": "ANZUBA — ambiente de desenvolvimento virtual para IAs dentro do navegador.",
-  "permissions": ["storage", "activeTab"],
-  "host_permissions": ["<all_urls>"],
-  "background": {"service_worker": "src/background.js", "type": "module"},
-  "action": {"default_title": "ANZUBA", "default_popup": "src/popup.html"},
-  "content_scripts": [{
-    "matches": ["<all_urls>"],
-    "js": ["src/core/ai-detector.js","src/core/theme-adapter.js","src/core/ai-bridge.js","src/core/project-manager.js","src/core/virtual-fs.js","src/core/material-manager.js","src/core/resource-manager.js","src/core/environment-manager.js","src/core/os-manager.js","src/core/cpu-manager.js","src/core/memory-manager.js","src/core/disk-manager.js","src/core/storage-manager.js","src/core/cache-manager.js","src/core/network-manager.js","src/core/process-manager.js","src/core/kernel-manager.js","src/core/user-manager.js","src/core/shell-manager.js","src/core/ai-adapters.js","src/content.js"],
-    "css": ["src/content.css"],
-    "run_at": "document_idle"
-  }]
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "ANZUBA",
+    "default_popup": "src/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "src/core/ai-detector.js",
+        "src/core/theme-adapter.js",
+        "src/core/ai-bridge.js",
+        "src/core/project-manager.js",
+        "src/core/virtual-fs.js",
+        "src/core/material-manager.js",
+        "src/core/resource-manager.js",
+        "src/core/environment-manager.js",
+        "src/core/os-manager.js",
+        "src/core/cpu-manager.js",
+        "src/core/memory-manager.js",
+        "src/core/disk-manager.js",
+        "src/core/storage-manager.js",
+        "src/core/cache-manager.js",
+        "src/core/tool-manager.js",
+        "src/core/network-manager.js",
+        "src/core/process-manager.js",
+        "src/core/kernel-manager.js",
+        "src/core/user-manager.js",
+        "src/core/shell-manager.js",
+        "src/core/ai-adapters.js",
+        "src/content.js"
+      ],
+      "css": [
+        "src/content.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
 }
