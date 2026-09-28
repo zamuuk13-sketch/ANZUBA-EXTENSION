@@ -57,41 +57,41 @@
     return window.ANZUBA_FS.normalize((cwd || "/") + "/" + value);
   }
 
-  async function cd(args, value) {
+  async function currentUser(project) {\n    const env = await window.ANZUBA_ENV.get(project);\n    return String(env?.USER || "ai");\n  }\n\n  async function cd(args, value, project) {
     const target = resolvePath(args[0] || "~", value.cwd);
-    const fs = await window.ANZUBA_FS.get();
+    const fs = await window.ANZUBA_FS.get(project);
     const key = target === "/" ? "/" : target + "/";
     if (!fs?.[key] || fs[key].type !== "directory") {
       return { stderr: "cd: diretório não encontrado: " + (args[0] || "~"), exitCode: 1 };
     }
-    value.cwd = target;
+    if (!await window.ANZUBA_USERS?.checkAccess?.(fs[key], await currentUser(project), "x", project)) return { stderr: "cd: permissão negada: " + (args[0] || "~"), exitCode: 1 };\n    value.cwd = target;
     return {};
   }
 
-  async function ls(args, value) {
+  async function ls(args, value, project) {
     const target = resolvePath(args.find(x => !x.startsWith("-")) || ".", value.cwd);
     const fs = await window.ANZUBA_FS.get();
     if (fs?.[target]?.type === "file") return { stdout: target };
     const key = target === "/" ? "/" : target + "/";
     if (!fs?.[key] && target !== "/") return { stderr: "ls: caminho não encontrado: " + target, exitCode: 1 };
-    const items = await window.ANZUBA_FS.list(target);
+    const items = await window.ANZUBA_FS.list(target, project, { username: await currentUser(project) });
     return { stdout: items.map(x => x.type === "directory" ? x.name + "/" : x.name).join("\n") };
   }
 
-  async function cat(args, value) {
+  async function cat(args, value, project) {
     if (!args.length) return { stderr: "cat: informe um arquivo", exitCode: 1 };
     const out = [];
     let code = 0;
     for (const arg of args) {
       const path = resolvePath(arg, value.cwd);
-      const text = await window.ANZUBA_FS.readFile(path);
+      const text = await window.ANZUBA_FS.readFile(path, project, { username: await currentUser(project) });
       if (text === null) { out.push("cat: arquivo não encontrado: " + arg); code = 1; }
       else out.push(text);
     }
     return { stdout: out.join("\n"), exitCode: code };
   }
 
-  async function mkdir(args, value) {
+  async function mkdir(args, value, project) {
     if (!args.length) return { stderr: "mkdir: informe um diretório", exitCode: 1 };
     const fs = await window.ANZUBA_FS.get();
     for (const arg of args) {
@@ -100,12 +100,12 @@
       const parent = path.split("/").slice(0, -1).join("/") || "/";
       const key = parent === "/" ? "/" : parent + "/";
       if (!fs?.[key]) return { stderr: "mkdir: diretório pai não encontrado: " + parent, exitCode: 1 };
-      await window.ANZUBA_FS.mkdir(path);
+      if (!await window.ANZUBA_FS.mkdir(path, project, { username: await currentUser(project) })) return { stderr: "mkdir: permissão negada: " + arg, exitCode: 1 };
     }
     return {};
   }
 
-  async function touch(args, value) {
+  async function touch(args, value, project) {
     if (!args.length) return { stderr: "touch: informe um arquivo", exitCode: 1 };
     const fs = await window.ANZUBA_FS.get();
     for (const arg of args) {
@@ -114,7 +114,7 @@
       const parent = path.split("/").slice(0, -1).join("/") || "/";
       const key = parent === "/" ? "/" : parent + "/";
       if (!fs?.[key]) return { stderr: "touch: diretório pai não encontrado: " + parent, exitCode: 1 };
-      await window.ANZUBA_FS.writeFile(path, "");
+      if (!await window.ANZUBA_FS.writeFile(path, "", project, { username: await currentUser(project) })) return { stderr: "touch: permissão negada: " + arg, exitCode: 1 };
     }
     return {};
   }
@@ -187,11 +187,11 @@
     let result = {};
     switch (command) {
       case "pwd": result = { stdout: value.cwd }; break;
-      case "cd": result = await cd(args, value); break;
-      case "ls": result = await ls(args, value); break;
-      case "cat": result = await cat(args, value); break;
-      case "mkdir": result = await mkdir(args, value); break;
-      case "touch": result = await touch(args, value); break;
+      case "cd": result = await cd(args, value, id); break;
+      case "ls": result = await ls(args, value, id); break;
+      case "cat": result = await cat(args, value, id); break;
+      case "mkdir": result = await mkdir(args, value, id); break;
+      case "touch": result = await touch(args, value, id); break;
       case "echo": result = { stdout: args.join(" ") }; break;
       case "env": result = await env(); break;
       case "export": {
