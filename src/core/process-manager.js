@@ -74,13 +74,17 @@
     const name = String(options.name || options.command || "process").trim();
     if (!name) return null;
 
+    const username = String(options.user || "ai");
+    const user = await window.ANZUBA_USERS?.get?.(username, id);
+    if (!user || user.locked) return null;
+
     const now = new Date().toISOString();
     const process = normalizeProcess({
       pid: state.nextPid,
       name,
       command: options.command || name,
       args: options.args,
-      user: options.user || "ai",
+      user: username,
       cwd: options.cwd || "/workspace",
       state: "running",
       startedAt: now,
