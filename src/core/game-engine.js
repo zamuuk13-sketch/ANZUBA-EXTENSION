@@ -107,6 +107,34 @@
     };
   }
 
+  async function setActiveScene(sceneId, id) {
+    const pid = projectId(id);
+    const targetId = String(sceneId || "").trim();
+    const scenes = await getScenes(pid);
+    const scene = scenes.find(item => item.id === targetId);
+    if (!scene) return { projectId: pid, ok: false, reason: "scene-not-found" };
+    const current = await getEngineConfig(pid);
+    const config = {
+      ...current,
+      activeSceneId: scene.id,
+      updatedAt: new Date().toISOString()
+    };
+    await window.ANZUBA_PROJECTS?.setData?.({ [ENGINE_KEY]: config }, pid);
+    return { projectId: pid, ok: true, activeSceneId: scene.id, scene: clone(scene) };
+  }
+
+  async function clearActiveScene(id) {
+    const pid = projectId(id);
+    const current = await getEngineConfig(pid);
+    const config = {
+      ...current,
+      activeSceneId: null,
+      updatedAt: new Date().toISOString()
+    };
+    await window.ANZUBA_PROJECTS?.setData?.({ [ENGINE_KEY]: config }, pid);
+    return { projectId: pid, ok: true, activeSceneId: null };
+  }
+
   async function createScene(name, options = {}, id) {
     const pid = projectId(id);
     const scenes = await getScenes(pid);
@@ -186,6 +214,8 @@
     configureEngine,
     getEngineConfig,
     getEngineStatus,
+    setActiveScene,
+    clearActiveScene,
     getScene,
     listScenes,
     addEntity,
@@ -199,6 +229,11 @@
     configureEngine(options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("game.engine.status", ({ id } = {}) =>
     getEngineStatus(id));
+
+  window.ANZUBA_AI_BRIDGE?.on("game.scene.activate", ({ sceneId, id } = {}) =>
+    setActiveScene(sceneId, id));
+  window.ANZUBA_AI_BRIDGE?.on("game.scene.deactivate", ({ id } = {}) =>
+    clearActiveScene(id));
 
   window.ANZUBA_AI_BRIDGE?.on("game.scene.create", ({ name, options, id } = {}) =>
     createScene(name, options || {}, id));
