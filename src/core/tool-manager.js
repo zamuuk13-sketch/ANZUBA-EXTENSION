@@ -51,6 +51,56 @@
     };
   }
 
+  async function addVersion(toolId, version, id) {
+    const pid = projectId(id);
+    const tools = await getAll(pid);
+    const index = tools.findIndex(tool => tool.id === toolId);
+    if (index < 0) return null;
+    const value = String(version || "").trim().slice(0, 64);
+    if (!value) throw new Error("Versão inválida.");
+    const versions = Array.isArray(tools[index].versions) ? tools[index].versions : [];
+    if (!versions.includes(value)) versions.push(value);
+    tools[index] = normalize({ ...tools[index], versions, id: tools[index].id });
+    await saveAll(tools, pid);
+    return clone(tools[index]);
+  }
+
+  async function removeVersion(toolId, version, id) {
+    const pid = projectId(id);
+    const tools = await getAll(pid);
+    const index = tools.findIndex(tool => tool.id === toolId);
+    if (index < 0) return false;
+    const value = String(version || "").trim();
+    if (value === tools[index].version) throw new Error("Não é possível remover a versão atualmente selecionada.");
+    const versions = (tools[index].versions || []).filter(item => item !== value);
+    if (versions.length === (tools[index].versions || []).length) return false;
+    tools[index] = normalize({ ...tools[index], versions, id: tools[index].id });
+    await saveAll(tools, pid);
+    return true;
+  }
+
+  async function selectVersion(toolId, version, id) {
+    const pid = projectId(id);
+    const tools = await getAll(pid);
+    const index = tools.findIndex(tool => tool.id === toolId);
+    if (index < 0) return null;
+    const value = String(version || "").trim();
+    if (!value) throw new Error("Versão inválida.");
+    const versions = Array.isArray(tools[index].versions) ? tools[index].versions : [];
+    if (!versions.includes(value)) throw new Error("Versão não encontrada no catálogo.");
+    tools[index] = normalize({ ...tools[index], version: value, id: tools[index].id });
+    await saveAll(tools, pid);
+    window.dispatchEvent(new CustomEvent("anzuba:tool-version-changed", {
+      detail: { projectId: pid, toolId: tools[index].id, version: value }
+    }));
+    return clone(tools[index]);
+  }
+
+  async function getVersions(toolId, id) {
+    const tool = await get(toolId, id);
+    return tool ? { toolId: tool.id, current: tool.version || null, versions: [...(tool.versions || [])] } : null;
+  }
+
   async function updateMetadata(toolId, metadata = {}, id) {
     const pid = projectId(id);
     const tools = await getAll(pid);
@@ -165,6 +215,10 @@
     uninstall
   };
 
+  window.ANZUBA_AI_BRIDGE?.on("tools.version.add", ({ toolId, version, id } = {}) => addVersion(toolId, version, id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.version.remove", ({ toolId, version, id } = {}) => removeVersion(toolId, version, id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.version.select", ({ toolId, version, id } = {}) => selectVersion(toolId, version, id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.versions.get", ({ toolId, id } = {}) => getVersions(toolId, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.list", ({ filter, id } = {}) => list(filter || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.get", ({ toolId, id } = {}) => get(toolId, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.register", ({ tool, id } = {}) => register(tool, id));
