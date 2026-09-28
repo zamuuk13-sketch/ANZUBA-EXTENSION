@@ -1,5 +1,9 @@
 # ANZUBA
 
+### Etapa 38/275 — Permissões do filesystem virtual
+
+O filesystem do ANZUBA agora possui proprietário, grupo e modo de acesso nos arquivos e diretórios. As operações de leitura, listagem, criação, escrita, navegação e remoção podem consultar o usuário virtual através do gerenciador de permissões. O shell passou a respeitar essas permissões, conectando usuários/grupos do ANZUBA OS ao filesystem sem acessar o sistema de arquivos real do dispositivo.
+
 ### Etapa 37/275 — Registro de runtimes de comandos virtuais
 
 O shell agora possui um registro interno de comandos executáveis. Módulos futuros podem registrar um runtime para um comando com `window.ANZUBA_SHELL.registerCommand()`; quando a IA chama esse comando, o shell cria um processo virtual, executa o handler dentro do ambiente do projeto, captura saída/código de retorno e encerra o processo. Também existem APIs para remover e listar comandos registrados. Executáveis encontrados no `PATH` continuam sendo diferenciados de comandos que já possuem runtime registrado.
