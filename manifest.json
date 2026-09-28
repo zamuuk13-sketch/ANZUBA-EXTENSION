@@ -24,9 +24,20 @@
         "<all_urls>"
       ],
       "js": [
+        "src/core/page-bridge-main.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
         "src/core/ai-detector.js",
         "src/core/theme-adapter.js",
         "src/core/ai-bridge.js",
+        "src/core/page-bridge.js",
         "src/core/ai-programmer.js",
         "src/core/project-manager.js",
         "src/core/virtual-fs.js",
@@ -47,6 +58,7 @@
         "src/core/user-manager.js",
         "src/core/shell-manager.js",
         "src/core/ai-adapters.js",
+        "src/core/ai-agent.js",
         "src/content.js"
       ],
       "css": [
@@ -54,5 +66,6 @@
       ],
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "minimum_chrome_version": "102"
 }
