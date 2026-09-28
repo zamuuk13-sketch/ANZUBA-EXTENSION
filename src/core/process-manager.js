@@ -16,6 +16,9 @@
       args: Array.isArray(raw?.args) ? raw.args.map(value => String(value)).slice(0, 50) : [],
       user: String(raw?.user || "ai").slice(0, 32),
       cwd: String(raw?.cwd || "/workspace").slice(0, 200),
+      environment: raw?.environment && typeof raw.environment === "object" && !Array.isArray(raw.environment)
+        ? Object.fromEntries(Object.entries(raw.environment).slice(0, 50).map(([key, value]) => [String(key).slice(0, 64), String(value).slice(0, 512)]))
+        : {},
       state: ["running", "stopped", "terminated"].includes(raw?.state) ? raw.state : "stopped",
       startedAt: raw?.startedAt || null,
       endedAt: raw?.endedAt || null,
@@ -86,6 +89,7 @@
       args: options.args,
       user: username,
       cwd: options.cwd || "/workspace",
+      environment: options.environment && typeof options.environment === "object" && !Array.isArray(options.environment) ? options.environment : {},
       state: "running",
       startedAt: now,
       endedAt: null,
