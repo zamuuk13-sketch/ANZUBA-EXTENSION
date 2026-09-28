@@ -428,3 +428,7 @@ A Game Engine agora permite substituir e consultar o conjunto de componentes de 
 ### Etapa 105/275 — Hierarquia de entidades
 
 A Game Engine agora suporta relações pai/filho entre entidades. A IA pode definir ou remover o pai de uma entidade e consultar seus filhos, com validação contra auto-parentesco, pais inexistentes e ciclos hierárquicos. A hierarquia permanece persistente e isolada por projeto e está disponível pelo AI Bridge.
+
+### Etapa 106/275 — Ordenação de entidades
+
+A Game Engine agora permite alterar a ordem das entidades dentro de uma cena. A operação valida o índice, limita o destino ao intervalo disponível, persiste a nova ordem por projeto e está disponível pelo AI Bridge através de `game.entity.reorder`.
