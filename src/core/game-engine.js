@@ -167,6 +167,58 @@
     };
   }
 
+  async function duplicateScene(sceneId, options = {}, id) {
+    const pid = projectId(id);
+    const scenes = await getScenes(pid);
+    if (scenes.length >= 50) return { projectId: pid, ok: false, reason: "scene-limit" };
+
+    const sourceId = String(sceneId || "").trim();
+    const source = scenes.find(item => item.id === sourceId);
+    if (!source) return { projectId: pid, ok: false, reason: "scene-not-found" };
+
+    const now = new Date().toISOString();
+    const copy = clone(source);
+    copy.id = "scene_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+    copy.projectId = pid;
+    copy.name = String(options.name !== undefined ? options.name : source.name + " Copy").trim().slice(0, 120) || "Scene Copy";
+    copy.createdAt = now;
+    copy.updatedAt = now;
+    copy.entities = Array.isArray(copy.entities) ? copy.entities.map(entity => ({
+      ...entity,
+      id: "entity_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+      createdAt: now,
+      updatedAt: now
+    })) : [];
+
+    const idMap = new Map();
+    const originalEntities = source.entities || [];
+    originalEntities.forEach((entity, index) => {
+      if (copy.entities[index]) idMap.set(entity.id, copy.entities[index].id);
+    });
+    copy.entities.forEach(entity => {
+      const parentId = entity.components?.hierarchy?.parentId;
+      if (parentId) {
+        entity.components = {
+          ...entity.components,
+          hierarchy: {
+            ...(entity.components.hierarchy || {}),
+            parentId: idMap.get(parentId) || null
+          }
+        };
+      }
+    });
+    if (copy.settings?.activeCamera) {
+      copy.settings = {
+        ...copy.settings,
+        activeCamera: idMap.get(copy.settings.activeCamera) || copy.settings.activeCamera
+      };
+    }
+
+    scenes.push(copy);
+    await window.ANZUBA_PROJECTS?.setData?.({ [SCENE_KEY]: scenes }, pid);
+    return { projectId: pid, ok: true, scene: clone(copy) };
+  }
+
   async function createScene(name, options = {}, id) {
     const pid = projectId(id);
     const scenes = await getScenes(pid);
@@ -486,6 +538,7 @@
 
   window.ANZUBA_GAME_ENGINE = {
     createScene,
+    duplicateScene,
     configureEngine,
     getEngineConfig,
     getEngineStatus,
@@ -526,6 +579,9 @@
 
   window.ANZUBA_AI_BRIDGE?.on("game.scene.create", ({ name, options, id } = {}) =>
     createScene(name, options || {}, id));
+  window.ANZUBA_AI_BRIDGE?.on("game.scene.duplicate", ({ sceneId, options, id } = {}) =>
+    duplicateScene(sceneId, options || {}, id));
+
   window.ANZUBA_AI_BRIDGE?.on("game.scene.get", ({ sceneId, id } = {}) =>
     getScene(sceneId, id));
   window.ANZUBA_AI_BRIDGE?.on("game.scenes.list", ({ id } = {}) =>
