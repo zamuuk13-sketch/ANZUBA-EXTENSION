@@ -24,6 +24,50 @@
     };
   }
 
+  const ENGINE_KEY = "gameEngine";
+
+  async function getEngineConfig(id) {
+    const pid = projectId(id);
+    const data = await window.ANZUBA_PROJECTS?.getData?.(pid);
+    return data?.[ENGINE_KEY] ? clone(data[ENGINE_KEY]) : {
+      projectId: pid,
+      version: 1,
+      name: "ANZUBA Game Engine",
+      mode: "3d",
+      activeSceneId: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  async function configureEngine(options = {}, id) {
+    const pid = projectId(id);
+    const current = await getEngineConfig(pid);
+    const config = {
+      ...current,
+      name: options.name !== undefined ? String(options.name).slice(0, 120) : current.name,
+      mode: ["2d", "3d"].includes(String(options.mode)) ? String(options.mode) : current.mode,
+      updatedAt: new Date().toISOString()
+    };
+    await window.ANZUBA_PROJECTS?.setData?.({ [ENGINE_KEY]: config }, pid);
+    return { projectId: pid, ok: true, config: clone(config) };
+  }
+
+  async function getEngineStatus(id) {
+    const pid = projectId(id);
+    const config = await getEngineConfig(pid);
+    const scenes = await getScenes(pid);
+    return {
+      projectId: pid,
+      ok: true,
+      version: config.version,
+      mode: config.mode,
+      activeSceneId: config.activeSceneId || null,
+      sceneCount: scenes.length,
+      entityCount: scenes.reduce((total, scene) => total + scene.entities.length, 0)
+    };
+  }
+
   async function createScene(name, options = {}, id) {
     const pid = projectId(id);
     const scenes = await getScenes(pid);
@@ -100,12 +144,20 @@
 
   window.ANZUBA_GAME_ENGINE = {
     createScene,
+    configureEngine,
+    getEngineConfig,
+    getEngineStatus,
     getScene,
     listScenes,
     addEntity,
     removeEntity,
     updateEntity
   };
+
+  window.ANZUBA_AI_BRIDGE?.on("game.engine.configure", ({ options, id } = {}) =>
+    configureEngine(options || {}, id));
+  window.ANZUBA_AI_BRIDGE?.on("game.engine.status", ({ id } = {}) =>
+    getEngineStatus(id));
 
   window.ANZUBA_AI_BRIDGE?.on("game.scene.create", ({ name, options, id } = {}) =>
     createScene(name, options || {}, id));
