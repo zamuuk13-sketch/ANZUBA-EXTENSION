@@ -552,6 +552,24 @@
       throw new Error("Backup excede a quota de armazenamento virtual.");
     }
 
+    const invalidEntry = Object.entries(next.entries).some(([key, entry]) =>
+      !normalizeKey(key) ||
+      !entry ||
+      typeof entry !== "object" ||
+      !Object.prototype.hasOwnProperty.call(entry, "value")
+    );
+    const invalidSnapshot = Object.values(next.snapshots).some(snapshot =>
+      !snapshot ||
+      typeof snapshot !== "object" ||
+      !snapshot.entries ||
+      typeof snapshot.entries !== "object" ||
+      !snapshot.volumes ||
+      typeof snapshot.volumes !== "object"
+    );
+    if (invalidEntry || invalidSnapshot) {
+      throw new Error("Backup contém estruturas inválidas.");
+    }
+
     const replace = options.replace !== false;
     if (!replace) {
       next.entries = {
@@ -566,6 +584,12 @@
         ...current.snapshots,
         ...next.snapshots
       };
+    }
+
+    const finalBytes = Object.values(next.entries)
+      .reduce((sum, entry) => sum + Number(entry?.sizeBytes || 0), 0);
+    if (finalBytes > next.quotaMB * 1024 * 1024) {
+      throw new Error("Backup combinado excede a quota de armazenamento virtual.");
     }
 
     await saveState(next, pid);
