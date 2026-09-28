@@ -36,6 +36,7 @@
         "src/core/cpu-manager.js",
         "src/core/memory-manager.js",
         "src/core/disk-manager.js",
+        "src/core/storage-manager.js",
         "src/core/network-manager.js",
         "src/core/process-manager.js",
         "src/core/kernel-manager.js",
