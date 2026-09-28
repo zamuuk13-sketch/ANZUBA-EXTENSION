@@ -188,6 +188,11 @@ O Tool Manager agora mantém múltiplas versões por ferramenta, permite adicion
 
 O Tool Manager agora gerencia dependências entre ferramentas. A IA pode definir dependências, consultar o que uma ferramenta precisa e descobrir quais outras ferramentas dependem dela, com validação de referências e prevenção de dependência da própria ferramenta.
 
+
+### Etapa 58/275 — Compatibilidade entre ferramentas e versões
+
+O Tool Manager agora mantém regras de compatibilidade, compara versões e valida requisitos e conflitos entre ferramentas instaladas, com suporte a faixas simples como `>=1.2.0`, `<2.0.0` e versões exatas.
+
 ### Etapa 57/275 — Resolução automática de dependências
 
 O Tool Manager agora resolve a árvore de dependências antes da instalação. Ele produz uma ordem de instalação, detecta dependências ausentes e ciclos e oferece instalação encadeada pelo comando `tools.install.withDependencies`.
