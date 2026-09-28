@@ -448,3 +448,8 @@ Adicionado diagnóstico integrado da Game Engine com verificação de configura�
 ### Etapa 111/275 — Duplicação de cenas
 
 A Game Engine agora permite duplicar uma cena completa dentro do projeto. A cópia recebe novo ID e novos IDs para suas entidades, preserva configurações e componentes, remapeia referências hierárquicas internas e a câmera ativa quando aplicável, respeita o limite de cenas e fica persistida no projeto. Bridge: `game.scene.duplicate`.
+
+
+### Etapa 112/275 — Configurações de cena
+
+A Game Engine agora permite consultar e alterar configurações persistentes de cada cena, incluindo gravidade e câmera ativa. A câmera definida é validada contra as entidades da própria cena, valores de gravidade inválidos são rejeitados e tudo permanece isolado por projeto. Bridge: `game.scene.settings.get` e `game.scene.settings.set`.
