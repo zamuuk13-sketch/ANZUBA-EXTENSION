@@ -463,6 +463,84 @@
     };
   }
 
+  async function getCompileJobs(id) {
+    const pid = projectId(id);
+    const data = await window.ANZUBA_PROJECTS?.getData?.(pid);
+    if (!data || !Array.isArray(data.compileJobs)) return [];
+    return clone(data.compileJobs);
+  }
+
+  async function saveCompileJobs(jobs, id) {
+    const pid = projectId(id);
+    if (!pid) return false;
+    await window.ANZUBA_PROJECTS.setData({ compileJobs: clone(jobs) }, pid);
+    return true;
+  }
+
+  async function getCompileJob(jobId, id) {
+    const jobs = await getCompileJobs(id);
+    return jobs.find(job => job.id === String(jobId || "").trim()) || null;
+  }
+
+  async function listCompileJobs(options = {}, id) {
+    const jobs = await getCompileJobs(id);
+    const status = options?.status ? String(options.status).trim().toLowerCase() : null;
+    const limit = Math.min(Math.max(Number(options?.limit) || 50, 1), 200);
+    return jobs
+      .filter(job => !status || job.status === status)
+      .slice(-limit)
+      .reverse();
+  }
+
+  async function createCompileJob(compilerId, sourcePath, options = {}, id) {
+    const pid = projectId(id);
+    const compilation = await compileSource(compilerId, sourcePath, options, pid);
+    const jobs = await getCompileJobs(pid);
+
+    const job = {
+      id: `build_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      projectId: pid,
+      compilerId: String(compilerId || ""),
+      sourcePath: String(sourcePath || ""),
+      outputPath: compilation.output || null,
+      args: Array.isArray(compilation.args) ? compilation.args : [],
+      cwd: options?.cwd ? String(options.cwd) : compilation.process?.cwd || "/workspace",
+      user: options?.user ? String(options.user) : compilation.process?.user || "ai",
+      processId: compilation.process?.pid || null,
+      status: compilation.ok ? "queued" : "failed",
+      exitCode: compilation.ok ? null : (compilation.exitCode ?? 1),
+      error: compilation.ok ? null : (compilation.reason || "compile-failed"),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    jobs.push(job);
+    await saveCompileJobs(jobs.slice(-200), pid);
+    return clone(job);
+  }
+
+  async function updateCompileJob(jobId, patch = {}, id) {
+    const pid = projectId(id);
+    const jobs = await getCompileJobs(pid);
+    const index = jobs.findIndex(job => job.id === String(jobId || "").trim());
+    if (index < 0) return null;
+
+    const allowedStatuses = ["queued", "running", "completed", "failed", "cancelled"];
+    const current = jobs[index];
+    const updated = {
+      ...current,
+      status: allowedStatuses.includes(patch.status) ? patch.status : current.status,
+      exitCode: Number.isInteger(patch.exitCode) ? patch.exitCode : current.exitCode,
+      outputPath: patch.outputPath ? String(patch.outputPath).slice(0, 512) : current.outputPath,
+      error: patch.error ? String(patch.error).slice(0, 500) : (patch.error === null ? null : current.error),
+      updatedAt: new Date().toISOString()
+    };
+
+    jobs[index] = updated;
+    await saveCompileJobs(jobs, pid);
+    return clone(updated);
+  }
+
   async function health(id) {
     const pid = projectId(id);
     const tools = await getAll(pid);
@@ -1282,6 +1360,11 @@
     findCompilerForLanguage,
     validateCompiler,
     compileSource,
+    getCompileJobs,
+    getCompileJob,
+    listCompileJobs,
+    createCompileJob,
+    updateCompileJob,
     syncExecutables,
     executeExecutable
   };
@@ -1303,6 +1386,10 @@
   window.ANZUBA_AI_BRIDGE?.on("compiler.find", ({ languageId, id } = {}) => findCompilerForLanguage(languageId, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.validate", ({ compilerId, id } = {}) => validateCompiler(compilerId, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.compile", ({ compilerId, sourcePath, options, id } = {}) => compileSource(compilerId, sourcePath, options || {}, id));
+  window.ANZUBA_AI_BRIDGE?.on("compiler.job.create", ({ compilerId, sourcePath, options, id } = {}) => createCompileJob(compilerId, sourcePath, options || {}, id));
+  window.ANZUBA_AI_BRIDGE?.on("compiler.job.get", ({ jobId, id } = {}) => getCompileJob(jobId, id));
+  window.ANZUBA_AI_BRIDGE?.on("compiler.jobs.list", ({ options, id } = {}) => listCompileJobs(options || {}, id));
+  window.ANZUBA_AI_BRIDGE?.on("compiler.job.update", ({ jobId, patch, id } = {}) => updateCompileJob(jobId, patch || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executable.run", ({ name, args, cwd, user, id } = {}) => executeExecutable(name, { args, cwd, user }, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.search", ({ query, id } = {}) => catalog(query || {}, id));
