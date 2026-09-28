@@ -679,6 +679,7 @@
       tool.installedAt = tool.installedAt || new Date().toISOString();
       tool.updatedAt = new Date().toISOString();
       await saveAll(tools, pid);
+      await syncExecutables(pid);
       window.dispatchEvent(new CustomEvent("anzuba:tool-installed", {
         detail: { projectId: pid, toolId: tool.id }
       }));
@@ -700,6 +701,7 @@
     tools[index].installedAt = null;
     tools[index].updatedAt = new Date().toISOString();
     await saveAll(tools, pid);
+    await removeExecutableStubs(pid, toolId);
     window.dispatchEvent(new CustomEvent("anzuba:tool-removed", {
       detail: { projectId: pid, toolId }
     }));
@@ -741,12 +743,14 @@
     health,
     setExecutables,
     getExecutables,
-    resolveExecutable
+    resolveExecutable,
+    syncExecutables
   };
 
   window.ANZUBA_AI_BRIDGE?.on("tools.executables.set", ({ toolId, executables, id } = {}) => setExecutables(toolId, executables || [], id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executables.get", ({ toolId, id } = {}) => getExecutables(toolId, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executable.resolve", ({ name, id } = {}) => resolveExecutable(name, id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.executables.sync", ({ id } = {}) => syncExecutables(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.search", ({ query, id } = {}) => catalog(query || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.recommend", ({ query, id } = {}) => recommend(query || {}, id));
