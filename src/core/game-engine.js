@@ -167,6 +167,21 @@
     };
   }
 
+  async function setSceneGravity(sceneId, gravity, id) {
+    return setSceneSettings(sceneId, { gravity }, id);
+  }
+
+  async function getSceneGravity(sceneId, id) {
+    const result = await getSceneSettings(sceneId, id);
+    if (!result.ok) return result;
+    return {
+      projectId: result.projectId,
+      ok: true,
+      sceneId: result.sceneId,
+      gravity: result.settings.gravity
+    };
+  }
+
   async function getSceneSettings(sceneId, id) {
     const pid = projectId(id);
     const scene = await getScene(sceneId, pid);
@@ -597,6 +612,8 @@
     duplicateScene,
     getSceneSettings,
     setSceneSettings,
+    setSceneGravity,
+    getSceneGravity,
     configureEngine,
     getEngineConfig,
     getEngineStatus,
@@ -644,6 +661,11 @@
     getSceneSettings(sceneId, id));
   window.ANZUBA_AI_BRIDGE?.on("game.scene.settings.set", ({ sceneId, settings, id } = {}) =>
     setSceneSettings(sceneId, settings || {}, id));
+
+  window.ANZUBA_AI_BRIDGE?.on("game.scene.gravity.get", ({ sceneId, id } = {}) =>
+    getSceneGravity(sceneId, id));
+  window.ANZUBA_AI_BRIDGE?.on("game.scene.gravity.set", ({ sceneId, gravity, id } = {}) =>
+    setSceneGravity(sceneId, gravity, id));
 
   window.ANZUBA_AI_BRIDGE?.on("game.scene.get", ({ sceneId, id } = {}) =>
     getScene(sceneId, id));
