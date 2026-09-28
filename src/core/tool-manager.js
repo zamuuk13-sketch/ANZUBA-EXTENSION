@@ -891,6 +891,55 @@
     };
   }
 
+  async function createBuildManifest(plan = {}, id) {
+    const pid = projectId(id);
+    const validation = await validateBuildPlan(plan, pid);
+    if (!validation.ok) {
+      return { projectId: pid, ok: false, validation, manifest: null };
+    }
+
+    const manifest = {
+      format: "anzuba-build",
+      version: 1,
+      projectId: pid,
+      createdAt: new Date().toISOString(),
+      target: {
+        id: plan.target?.id || null,
+        name: plan.target?.name || null,
+        platform: String(plan.platform || ""),
+        architecture: String(plan.architecture || ""),
+        format: String(plan.format || "")
+      },
+      compiler: plan.compiler ? {
+        id: plan.compiler.id || null,
+        name: plan.compiler.name || null,
+        version: plan.compiler.version || null
+      } : null,
+      profile: plan.profile ? {
+        name: plan.profile.name || null
+      } : null,
+      source: {
+        path: String(plan.sourcePath || ""),
+        output: plan.outputPath ? String(plan.outputPath) : null
+      },
+      execution: {
+        cwd: String(plan.cwd || "/workspace"),
+        user: String(plan.user || "ai"),
+        args: Array.isArray(plan.args) ? plan.args.map(String).slice(0, 100) : [],
+        environment: plan.environment && typeof plan.environment === "object" && !Array.isArray(plan.environment)
+          ? Object.fromEntries(Object.entries(plan.environment).slice(0, 50).map(([key, value]) => [String(key).slice(0, 64), String(value).slice(0, 512)]))
+          : {}
+      }
+    };
+
+    return {
+      projectId: pid,
+      ok: true,
+      validation,
+      manifest
+    };
+  }
+
   async function validateBuildPlan(plan = {}, id) {
     const pid = projectId(id);
     const issues = [];
@@ -1926,6 +1975,7 @@
     resolveBuildTarget,
     prepareBuildTarget,
     validateBuildPlan,
+    createBuildManifest,
     getBuildTarget,
     setBuildTarget,
     removeBuildTarget,
@@ -1969,6 +2019,7 @@
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifacts.list", ({ options, id } = {}) => listBuildArtifacts(options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifact.remove", ({ artifactId, id } = {}) => removeBuildArtifact(artifactId, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifact.validate", ({ artifactId, id } = {}) => validateBuildArtifact(artifactId, id));
+  window.ANZUBA_AI_BRIDGE?.on("build.manifest.create", ({ plan, id } = {}) => createBuildManifest(plan || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("build.plan.validate", ({ plan, id } = {}) => validateBuildPlan(plan || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("build.target.prepare", ({ name, sourcePath, options, id } = {}) => prepareBuildTarget(name, sourcePath, options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("build.target.resolve", ({ name, sourcePath, id } = {}) => resolveBuildTarget(name, sourcePath, id));
