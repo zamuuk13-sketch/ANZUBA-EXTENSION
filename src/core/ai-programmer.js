@@ -372,6 +372,69 @@
     };
   }
 
+  async function validateProgramImplementation(planId, options = {}, id) {
+    const pid = projectId(id);
+    const plan = await getProgramPlan(planId, pid);
+    if (!plan) return { projectId: pid, ok: false, reason: "plan-not-found", issues: ["plan-not-found"] };
+
+    const workspace = plan.workspace?.root;
+    if (!workspace) return { projectId: pid, ok: false, reason: "workspace-not-prepared", issues: ["workspace-not-prepared"] };
+
+    const fs = window.ANZUBA_FS;
+    if (!fs?.exists || !fs?.readFile) {
+      return { projectId: pid, ok: false, reason: "filesystem-unavailable", issues: ["filesystem-unavailable"] };
+    }
+
+    const root = workspace.endsWith("/") ? workspace : workspace + "/";
+    const files = Array.isArray(options.files) ? options.files.slice(0, 100) : [];
+    const issues = [];
+    const checked = [];
+
+    if (!files.length) {
+      issues.push("implementation-files-required");
+    }
+
+    for (const item of files) {
+      const path = String(item?.path || "").trim().replace(/\\\\/g, "/");
+      if (!path.startsWith(root) || path.includes("..")) {
+        issues.push("invalid-implementation-path");
+        continue;
+      }
+      if (!(await fs.exists(path, pid))) {
+        issues.push("file-missing:" + path);
+        continue;
+      }
+      const content = await fs.readFile(path, pid, { username: "ai" });
+      if (typeof content !== "string") {
+        issues.push("file-unreadable:" + path);
+        continue;
+      }
+      if (!content.trim()) issues.push("file-empty:" + path);
+      checked.push({ path, bytes: new TextEncoder().encode(content).length });
+    }
+
+    const uniqueIssues = [...new Set(issues)];
+    const ok = uniqueIssues.length === 0 && checked.length > 0;
+
+    const updated = ok
+      ? await updateProgramPlan(plan.id, {
+          status: "running",
+          stepId: "implement",
+          stepStatus: "completed"
+        }, pid)
+      : plan;
+
+    return {
+      projectId: pid,
+      ok,
+      planId: plan.id,
+      workspace: root,
+      checked,
+      issues: uniqueIssues,
+      plan: updated
+    };
+  }
+
   async function getProgramPlan(planId, id) {
     const plans = await getPlans(id);
     return plans.find(plan => plan.id === String(planId || "").trim()) || null;
@@ -413,6 +476,7 @@
     scaffoldProgram,
     generateProgramFiles,
     generateImplementation,
+    validateProgramImplementation,
     prepareProgramWorkspace,
     updateProgramPlan,
     listProgramPlans,
@@ -432,6 +496,9 @@
     getProgramPlan(planId, id));
   window.ANZUBA_AI_BRIDGE?.on("ai.program.scaffold", ({ planId, options, id } = {}) =>
     scaffoldProgram(planId, options || {}, id));
+
+  window.ANZUBA_AI_BRIDGE?.on("ai.program.implementation.validate", ({ planId, options, id } = {}) =>
+    validateProgramImplementation(planId, options || {}, id));
 
   window.ANZUBA_AI_BRIDGE?.on("ai.program.implementation.write", ({ planId, options, id } = {}) =>
     generateImplementation(planId, options || {}, id));
