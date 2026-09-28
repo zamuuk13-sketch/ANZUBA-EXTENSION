@@ -51,7 +51,7 @@
       }).filter(item => /^[A-Za-z0-9._-]{1,80}$/.test(item.name)).slice(0, 50) : [],
       languageId: tool.languageId ? String(tool.languageId).slice(0, 80) : null,
       languageName: tool.languageName ? String(tool.languageName).slice(0, 80) : null,
-      extensions: Array.isArray(tool.extensions) ? [...new Set(tool.extensions.map(String).map(value => value.toLowerCase()).filter(value => /^\\.[a-z0-9][a-z0-9._-]{0,15}$/.test(value)))].slice(0, 30) : [],
+      extensions: Array.isArray(tool.extensions) ? [...new Set(tool.extensions.map(String).map(value => value.toLowerCase()).filter(value => /^\.[a-z0-9][a-z0-9._-]{0,15}$/.test(value)))].slice(0, 30) : [],
       compilerConfig: {
         languageId: tool.compilerConfig?.languageId ? String(tool.compilerConfig.languageId).slice(0, 80) : null,
         sourceExtensions: Array.isArray(tool.compilerConfig?.sourceExtensions) ? tool.compilerConfig.sourceExtensions.map(String).slice(0, 30) : [],
@@ -314,7 +314,7 @@
       executables: [{ name: command, path: compiler.path ? String(compiler.path).trim() : null, args: Array.isArray(compiler.args) ? compiler.args.map(String).slice(0, 20) : [] }],
       compilerConfig: {
         languageId,
-        sourceExtensions: Array.isArray(compiler.sourceExtensions) ? [...new Set(compiler.sourceExtensions.map(String).map(value => value.toLowerCase()).filter(value => /^\\.[a-z0-9][a-z0-9._-]{0,15}$/.test(value)))].slice(0, 30) : [],
+        sourceExtensions: Array.isArray(compiler.sourceExtensions) ? [...new Set(compiler.sourceExtensions.map(String).map(value => value.toLowerCase()).filter(value => /^\.[a-z0-9][a-z0-9._-]{0,15}$/.test(value)))].slice(0, 30) : [],
         outputExtension: compiler.outputExtension ? String(compiler.outputExtension).trim().slice(0, 16) : null,
         defaultArgs: Array.isArray(compiler.defaultArgs) ? compiler.defaultArgs.map(String).slice(0, 30) : []
       }
