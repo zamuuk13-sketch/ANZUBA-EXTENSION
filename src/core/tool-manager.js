@@ -851,6 +851,52 @@
     return result;
   }
 
+  async function resolveBuildTarget(name, sourcePath = null, id) {
+    const pid = projectId(id);
+    const target = await getBuildTarget(name, pid);
+    if (!target) {
+      return { projectId: pid, ok: false, reason: "target-not-found", target: null, compiler: null, profile: null };
+    }
+
+    const validation = await validateBuildTarget(name, pid);
+    if (!validation.ok) {
+      return { projectId: pid, ok: false, reason: "target-invalid", target: clone(target), validation, compiler: null, profile: null };
+    }
+
+    let compiler = null;
+    let profile = null;
+
+    if (target.compilerId) compiler = await get(target.compilerId, pid);
+    if (target.profile) profile = await getBuildProfile(target.profile, pid);
+
+    if (!compiler && profile?.compilerId) compiler = await get(profile.compilerId, pid);
+    if (!compiler && target.platform) {
+      const candidates = await listCompilers(null, pid);
+      compiler = candidates.find(item => item.status === "installed") || null;
+    }
+
+    const resolvedSource = sourcePath ? String(sourcePath).trim() : (target.sourcePath || null);
+    const resolvedOutput = target.outputPath || profile?.outputPath || null;
+    const args = [
+      ...(Array.isArray(profile?.args) ? profile.args.map(String) : []),
+      ...(Array.isArray(target.args) ? target.args.map(String) : [])
+    ];
+
+    return {
+      projectId: pid,
+      ok: true,
+      target: clone(target),
+      compiler: compiler ? clone(compiler) : null,
+      profile: profile ? clone(profile) : null,
+      sourcePath: resolvedSource,
+      outputPath: resolvedOutput,
+      args,
+      platform: target.platform,
+      architecture: target.architecture,
+      format: target.format
+    };
+  }
+
   async function getBuildTargets(id) {
     const pid = projectId(id);
     const data = await window.ANZUBA_PROJECTS?.getData?.(pid);
@@ -1777,6 +1823,7 @@
     removeBuildArtifact,
     validateBuildArtifact,
     getBuildTargets,
+    resolveBuildTarget,
     getBuildTarget,
     setBuildTarget,
     removeBuildTarget,
@@ -1820,6 +1867,7 @@
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifacts.list", ({ options, id } = {}) => listBuildArtifacts(options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifact.remove", ({ artifactId, id } = {}) => removeBuildArtifact(artifactId, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifact.validate", ({ artifactId, id } = {}) => validateBuildArtifact(artifactId, id));
+  window.ANZUBA_AI_BRIDGE?.on("build.target.resolve", ({ name, sourcePath, id } = {}) => resolveBuildTarget(name, sourcePath, id));
   window.ANZUBA_AI_BRIDGE?.on("build.target.get", ({ name, id } = {}) => getBuildTarget(name, id));
   window.ANZUBA_AI_BRIDGE?.on("build.targets.list", ({ id } = {}) => getBuildTargets(id));
   window.ANZUBA_AI_BRIDGE?.on("build.target.set", ({ name, config, id } = {}) => setBuildTarget(name, config || {}, id));
