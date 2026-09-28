@@ -136,6 +136,10 @@ Gerenciador de RAM virtual persistente e isolado por projeto, com total, uso, me
 
 Adicionado o gerenciador de disco virtual persistente e isolado por projeto, com capacidade total, espaço usado/livre, filesystem virtual, verificação de espaço e cálculo de utilização. A IA pode consultar com `disk.status`, sincronizar com `disk.sync`, alterar a capacidade com `disk.total.set`, verificar espaço com `disk.space.check` e consultar uso com `disk.usage`.
 
+### Etapa 44/275 — Rede virtual
+
+Adicionado o gerenciador de rede virtual persistente e isolado por projeto, com hostname, interfaces virtuais, endereçamento, rotas, DNS, estado online/offline e controle de acesso de rede. A IA pode consultar com `network.status`, alterar o estado com `network.online.set`, controlar o acesso com `network.access.set`, adicionar/remover interfaces e resolver hosts com `network.resolve`.
+
 ## Próximas etapas
 41–45: expansão do núcleo do ANZUBA OS
 46–52: armazenamento
