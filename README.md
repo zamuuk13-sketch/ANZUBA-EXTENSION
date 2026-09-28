@@ -388,3 +388,7 @@ O AI Programmer agora consegue transformar o plano e a linguagem detectada em ar
 ### Etapa 96/275 — Escrita da implementação gerada
 
 O AI Programmer agora possui uma operação dedicada para gravar a implementação fornecida pela IA dentro do workspace do plano. A operação aceita até 100 arquivos, aplica limite de conteúdo, impede caminhos fora do workspace e respeita isolamento por projeto. Arquivos existentes são preservados por padrão e podem ser substituídos explicitamente. API: `ANZUBA_AI_PROGRAMMER.generateImplementation`. Bridge: `ai.program.implementation.write`.
+
+### Etapa 97/275 — Validação da implementação
+
+O AI Programmer agora consegue validar os arquivos de implementação gerados dentro do workspace. A operação verifica caminhos, existência, leitura e conteúdo dos arquivos, identifica arquivos ausentes ou vazios e retorna um diagnóstico consolidado sem executar o projeto. API: `ANZUBA_AI_PROGRAMMER.validateProgramImplementation`. Bridge: `ai.program.implementation.validate`.
