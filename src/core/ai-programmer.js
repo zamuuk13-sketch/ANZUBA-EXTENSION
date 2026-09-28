@@ -529,6 +529,31 @@
     return { projectId: pid, ok, planId: plan.id, sourcePath, compilerId, result, plan: updated };
   }
 
+  async function getProgrammerDiagnostics(id) {
+    const pid = projectId(id);
+    const plans = await getPlans(pid);
+    const issues = [];
+    for (const plan of plans) {
+      if (plan.projectId !== pid) issues.push("project-mismatch:" + plan.id);
+      if (!Array.isArray(plan.steps) || !plan.steps.length) issues.push("steps-missing:" + plan.id);
+      if (plan.workspace?.root && !String(plan.workspace.root).startsWith("/workspace/")) {
+        issues.push("workspace-invalid:" + plan.id);
+      }
+      if (plan.status === "running" && !plan.currentStep && !plan.steps?.some(step => step.status === "running")) {
+        issues.push("running-step-missing:" + plan.id);
+      }
+    }
+    return {
+      projectId: pid,
+      ok: issues.length === 0,
+      plans: plans.length,
+      running: plans.filter(plan => plan.status === "running").length,
+      completed: plans.filter(plan => plan.status === "completed").length,
+      failed: plans.filter(plan => plan.status === "failed").length,
+      issues: [...new Set(issues)]
+    };
+  }
+
   async function getProgramPlan(planId, id) {
     const plans = await getPlans(id);
     return plans.find(plan => plan.id === String(planId || "").trim()) || null;
@@ -577,7 +602,8 @@
     updateProgramPlan,
     listProgramPlans,
     analyzeRequirements,
-    getPlanStep
+    getPlanStep,
+    getProgrammerDiagnostics
   };
 
   window.ANZUBA_AI_BRIDGE?.on("ai.program.requirements.analyze", ({ prompt, id } = {}) => {
@@ -609,6 +635,8 @@
 
   window.ANZUBA_AI_BRIDGE?.on("ai.program.workspace.prepare", ({ planId, id } = {}) =>
     prepareProgramWorkspace(planId, id));
+
+  window.ANZUBA_AI_BRIDGE?.on("ai.program.diagnostics", ({ id } = {}) => getProgrammerDiagnostics(id));
 
   window.ANZUBA_AI_BRIDGE?.on("ai.program.plan.update", ({ planId, patch, id } = {}) =>
     updateProgramPlan(planId, patch || {}, id));
