@@ -519,6 +519,78 @@
     return clone(job);
   }
 
+  async function refreshBuildJob(jobId, id) {
+    const pid = projectId(id);
+    const job = await getCompileJob(jobId, pid);
+    if (!job) {
+      return { projectId: pid, ok: false, reason: "job-not-found", job: null, artifact: null };
+    }
+
+    let process = null;
+    if (job.processId && window.ANZUBA_PROCESSES?.get) {
+      process = await window.ANZUBA_PROCESSES.get(job.processId, pid);
+    }
+
+    const artifacts = await getBuildArtifacts(pid);
+    const jobArtifacts = artifacts.filter(item => item.jobId === job.id);
+    const outputPath = job.outputPath ? String(job.outputPath) : null;
+
+    let nextStatus = job.status;
+    let exitCode = job.exitCode;
+    let error = job.error;
+
+    if (process?.state === "terminated" || process?.state === "stopped") {
+      exitCode = Number.isInteger(process.exitCode) ? process.exitCode : 0;
+      nextStatus = exitCode === 0 ? "completed" : "failed";
+      error = nextStatus === "failed" ? (job.error || "build-failed") : null;
+    } else if (process?.state === "running") {
+      nextStatus = "running";
+      exitCode = null;
+    }
+
+    const updatedJob = await updateCompileJob(job.id, {
+      status: nextStatus,
+      exitCode,
+      outputPath,
+      error
+    }, pid);
+
+    let artifactResults = [];
+    for (const artifact of jobArtifacts) {
+      let status = artifact.status;
+      let sizeBytes = artifact.sizeBytes;
+
+      if (nextStatus === "failed") {
+        status = "invalid";
+      } else if (nextStatus === "completed") {
+        let exists = false;
+        if (window.ANZUBA_FS?.exists && artifact.path) {
+          exists = await window.ANZUBA_FS.exists(artifact.path, pid);
+        }
+        status = exists ? "available" : "missing";
+        if (exists && window.ANZUBA_FS?.readFile) {
+          const content = await window.ANZUBA_FS.readFile(artifact.path, pid, { username: "ai" });
+          if (typeof content === "string") sizeBytes = new TextEncoder().encode(content).length;
+        }
+      }
+
+      artifactResults.push(await registerBuildArtifact(job.id, {
+        ...artifact,
+        status,
+        sizeBytes
+      }, pid));
+    }
+
+    return {
+      projectId: pid,
+      ok: nextStatus === "completed",
+      status: nextStatus,
+      job: updatedJob,
+      process: process ? clone(process) : null,
+      artifacts: artifactResults
+    };
+  }
+
   async function updateCompileJob(jobId, patch = {}, id) {
     const pid = projectId(id);
     const jobs = await getCompileJobs(pid);
@@ -2120,6 +2192,7 @@
     compileSource,
     getCompileJobs,
     getCompileJob,
+    refreshBuildJob,
     listCompileJobs,
     createCompileJob,
     updateCompileJob,
@@ -2176,6 +2249,7 @@
   window.ANZUBA_AI_BRIDGE?.on("compiler.compile", ({ compilerId, sourcePath, options, id } = {}) => compileSource(compilerId, sourcePath, options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.job.create", ({ compilerId, sourcePath, options, id } = {}) => createCompileJob(compilerId, sourcePath, options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.job.get", ({ jobId, id } = {}) => getCompileJob(jobId, id));
+  window.ANZUBA_AI_BRIDGE?.on("compiler.job.refresh", ({ jobId, id } = {}) => refreshBuildJob(jobId, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.jobs.list", ({ options, id } = {}) => listCompileJobs(options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.job.update", ({ jobId, patch, id } = {}) => updateCompileJob(jobId, patch || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifact.register", ({ jobId, artifact, id } = {}) => registerBuildArtifact(jobId, artifact || {}, id));
