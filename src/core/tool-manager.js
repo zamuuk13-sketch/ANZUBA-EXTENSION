@@ -58,6 +58,64 @@
     };
   }
 
+  async function health(id) {
+    const pid = projectId(id);
+    const tools = await getAll(pid);
+    const issues = [];
+    const ids = new Set();
+
+    for (const tool of tools) {
+      if (!tool.id || ids.has(tool.id)) {
+        issues.push({ type: "invalid-id", toolId: tool.id || null });
+      }
+      ids.add(tool.id);
+
+      if (!TOOL_TYPES.includes(tool.type)) issues.push({ type: "invalid-type", toolId: tool.id, value: tool.type });
+      if (!STATES.includes(tool.status)) issues.push({ type: "invalid-status", toolId: tool.id, value: tool.status });
+
+      for (const dependencyId of Array.isArray(tool.dependencies) ? tool.dependencies : []) {
+        if (!ids.has(dependencyId) && !tools.some(item => item.id === dependencyId)) {
+          issues.push({ type: "missing-dependency", toolId: tool.id, dependencyId });
+        }
+      }
+
+      for (const requirement of tool.compatibility?.requires || []) {
+        if (!tools.some(item => item.id === requirement.toolId)) {
+          issues.push({ type: "missing-compatibility-target", toolId: tool.id, targetId: requirement.toolId });
+        }
+      }
+
+      for (const conflictId of tool.compatibility?.conflicts || []) {
+        if (!tools.some(item => item.id === conflictId)) {
+          issues.push({ type: "missing-conflict-target", toolId: tool.id, targetId: conflictId });
+        }
+      }
+    }
+
+    const dependencyIds = new Set();
+    for (const tool of tools) {
+      for (const dependencyId of tool.dependencies || []) dependencyIds.add(dependencyId);
+    }
+
+    for (const dependencyId of dependencyIds) {
+      if (!tools.some(item => item.id === dependencyId)) {
+        issues.push({ type: "orphan-dependency", dependencyId });
+      }
+    }
+
+    const uniqueIssues = issues.filter((issue, index, all) =>
+      index === all.findIndex(item => JSON.stringify(item) === JSON.stringify(issue))
+    );
+
+    return {
+      projectId: pid,
+      ok: uniqueIssues.length === 0,
+      tools: tools.length,
+      installed: tools.filter(tool => tool.status === "installed").length,
+      issues: uniqueIssues
+    };
+  }
+
   async function catalog(query = {}, id) {
     const text = String(query.query || "").trim().toLowerCase();
     const type = query.type ? String(query.type) : null;
@@ -505,9 +563,11 @@
     compareVersions,
     satisfiesRange,
     catalog,
-    recommend
+    recommend,
+    health
   };
 
+  window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.search", ({ query, id } = {}) => catalog(query || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.recommend", ({ query, id } = {}) => recommend(query || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.compatibility.set", ({ toolId, compatibility, id } = {}) => setCompatibility(toolId, compatibility || {}, id));
