@@ -274,6 +274,11 @@ A detecção de linguagem foi ampliada além da extensão do arquivo. O ANZUBA a
 
 ### Etapa 71/275 — Validação de compiladores
 
+
+### Etapa 72/275 — Execução virtual de compiladores
+
+Adicionada a preparação de compilação virtual por projeto. A IA pode usar `ANZUBA_TOOLS.compileSource` ou `compiler.compile` para validar o compilador, montar os argumentos, definir arquivo de saída, diretório de trabalho e usuário e criar o processo virtual de compilação. A operação permanece dentro do runtime virtual do ANZUBA OS e não executa binários do computador hospedeiro.
+
 Adicionada a validação dos compiladores registrados. O ANZUBA verifica se o compilador existe, está associado a uma linguagem registrada, possui extensões de entrada válidas, tem executável configurado, está instalado e permanece compatível com as dependências/regras do projeto. A IA pode consultar o resultado pela API `ANZUBA_TOOLS.validateCompiler` ou pelo comando `compiler.validate`.
 
 Adicionado o registro de compiladores ao Tool Manager. Um compilador pode ser associado a uma linguagem, comando, versão, extensões de entrada, extensão de saída e argumentos padrão. A IA pode registrar, listar e localizar o compilador adequado através das APIs do Tool Manager e dos comandos Bridge correspondentes.
