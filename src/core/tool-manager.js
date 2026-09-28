@@ -940,6 +940,49 @@
     };
   }
 
+  async function validateBuildManifest(manifest = {}, id) {
+    const pid = projectId(id);
+    const issues = [];
+
+    if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) {
+      return { projectId: pid, ok: false, issues: ["manifest-invalid"], manifest: null };
+    }
+
+    if (String(manifest.format || "") !== "anzuba-build") issues.push("format-invalid");
+    if (Number(manifest.version) !== 1) issues.push("version-invalid");
+    if (String(manifest.projectId || "") !== String(pid || "")) issues.push("project-mismatch");
+    if (!manifest.target || typeof manifest.target !== "object") issues.push("target-missing");
+    if (!manifest.compiler || typeof manifest.compiler !== "object") issues.push("compiler-missing");
+    if (!manifest.source || typeof manifest.source !== "object") issues.push("source-missing");
+
+    const target = manifest.target || {};
+    if (!String(target.name || "").trim()) issues.push("target-name-missing");
+    if (!String(target.platform || "").trim()) issues.push("platform-missing");
+    if (!String(target.architecture || "").trim()) issues.push("architecture-missing");
+    if (!String(target.format || "").trim()) issues.push("target-format-missing");
+
+    const source = manifest.source || {};
+    if (!String(source.path || "").startsWith("/")) issues.push("source-path-invalid");
+    if (source.output != null && source.output !== "" && !String(source.output).startsWith("/")) {
+      issues.push("output-path-invalid");
+    }
+
+    const execution = manifest.execution && typeof manifest.execution === "object" ? manifest.execution : {};
+    if (execution.cwd != null && !String(execution.cwd).startsWith("/")) issues.push("cwd-invalid");
+    if (execution.args != null && !Array.isArray(execution.args)) issues.push("args-invalid");
+    if (execution.environment != null && (typeof execution.environment !== "object" || Array.isArray(execution.environment))) {
+      issues.push("environment-invalid");
+    }
+
+    const uniqueIssues = [...new Set(issues)];
+    return {
+      projectId: pid,
+      ok: uniqueIssues.length === 0,
+      issues: uniqueIssues,
+      manifest: clone(manifest)
+    };
+  }
+
   async function registerBuildManifest(manifest = {}, id) {
     const pid = projectId(id);
     if (!pid || !manifest || typeof manifest !== "object" || Array.isArray(manifest)) return null;
@@ -2028,6 +2071,7 @@
     prepareBuildTarget,
     validateBuildPlan,
     createBuildManifest,
+    validateBuildManifest,
     registerBuildManifest,
     getBuildManifest,
     listBuildManifests,
@@ -2075,6 +2119,7 @@
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifacts.list", ({ options, id } = {}) => listBuildArtifacts(options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifact.remove", ({ artifactId, id } = {}) => removeBuildArtifact(artifactId, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifact.validate", ({ artifactId, id } = {}) => validateBuildArtifact(artifactId, id));
+  window.ANZUBA_AI_BRIDGE?.on("build.manifest.validate", ({ manifest, id } = {}) => validateBuildManifest(manifest || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("build.manifest.register", ({ manifest, id } = {}) => registerBuildManifest(manifest || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("build.manifest.get", ({ manifestId, id } = {}) => getBuildManifest(manifestId, id));
   window.ANZUBA_AI_BRIDGE?.on("build.manifests.list", ({ id } = {}) => listBuildManifests(id));
