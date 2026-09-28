@@ -482,6 +482,29 @@
     } : null;
   }
 
+  async function resolveExecutable(name, id) {
+    const pid = projectId(id);
+    const value = String(name || "").trim();
+    if (!value) return null;
+    const tools = await getAll(pid);
+    for (const tool of tools) {
+      if (tool.status !== "installed") continue;
+      const executable = (tool.executables || []).find(item => item?.name === value);
+      if (!executable) continue;
+      return {
+        projectId: pid,
+        name: value,
+        toolId: tool.id,
+        toolName: tool.name,
+        version: tool.version || null,
+        path: executable.path || null,
+        args: Array.isArray(executable.args) ? [...executable.args] : [],
+        installed: true
+      };
+    }
+    return null;
+  }
+
   async function updateMetadata(toolId, metadata = {}, id) {
     const pid = projectId(id);
     const tools = await getAll(pid);
@@ -618,11 +641,10 @@
     recommend,
     health,
     setExecutables,
-    getExecutables
-  };
+    getExecutables,\n    resolveExecutable\n  };
 
   window.ANZUBA_AI_BRIDGE?.on("tools.executables.set", ({ toolId, executables, id } = {}) => setExecutables(toolId, executables || [], id));
-  window.ANZUBA_AI_BRIDGE?.on("tools.executables.get", ({ toolId, id } = {}) => getExecutables(toolId, id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.executables.get", ({ toolId, id } = {}) => getExecutables(toolId, id));\n  window.ANZUBA_AI_BRIDGE?.on("tools.executable.resolve", ({ name, id } = {}) => resolveExecutable(name, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.search", ({ query, id } = {}) => catalog(query || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.recommend", ({ query, id } = {}) => recommend(query || {}, id));
