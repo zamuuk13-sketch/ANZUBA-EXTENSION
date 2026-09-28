@@ -283,6 +283,11 @@ A detecção de linguagem foi ampliada além da extensão do arquivo. O ANZUBA a
 
 ### Etapa 74/275 — Artefatos de compilação
 
+
+### Etapa 75/275 — Validação de artefatos de compilação
+
+Adicionada a validação dos artefatos de compilação. O ANZUBA verifica existência do artefato registrado, caminho, tamanho, estado, vínculo com o job de compilação e isolamento do projeto, retornando os problemas encontrados sem executar nada no computador hospedeiro. A IA pode consultar com `ANZUBA_TOOLS.validateBuildArtifact` ou pelo comando `compiler.artifact.validate`.
+
 Adicionado o registro persistente dos artefatos produzidos pelos jobs de compilação. Cada artefato mantém vínculo com o job, caminho, tipo, tamanho, checksum e estado. A IA pode registrar, consultar, listar e remover artefatos através de `ANZUBA_TOOLS.registerBuildArtifact`, `getBuildArtifact`, `listBuildArtifacts` e `removeBuildArtifact`, ou pelos comandos `compiler.artifact.register`, `compiler.artifact.get`, `compiler.artifacts.list` e `compiler.artifact.remove`.
 
 Adicionado o gerenciamento persistente de jobs de compilação por projeto. Cada job registra compilador, arquivo de origem, saída, argumentos, processo virtual, usuário, diretório de trabalho, estado, código de saída e erro. A IA pode criar, consultar, listar e atualizar jobs através de `ANZUBA_TOOLS.createCompileJob`, `getCompileJob`, `listCompileJobs` e `updateCompileJob`, ou pelos comandos `compiler.job.create`, `compiler.job.get`, `compiler.jobs.list` e `compiler.job.update`.
