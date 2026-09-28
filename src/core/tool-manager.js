@@ -52,6 +52,12 @@
       languageId: tool.languageId ? String(tool.languageId).slice(0, 80) : null,
       languageName: tool.languageName ? String(tool.languageName).slice(0, 80) : null,
       extensions: Array.isArray(tool.extensions) ? [...new Set(tool.extensions.map(String).map(value => value.toLowerCase()).filter(value => /^\\.[a-z0-9][a-z0-9._-]{0,15}$/.test(value)))].slice(0, 30) : [],
+      compilerConfig: {
+        languageId: tool.compilerConfig?.languageId ? String(tool.compilerConfig.languageId).slice(0, 80) : null,
+        sourceExtensions: Array.isArray(tool.compilerConfig?.sourceExtensions) ? tool.compilerConfig.sourceExtensions.map(String).slice(0, 30) : [],
+        outputExtension: tool.compilerConfig?.outputExtension ? String(tool.compilerConfig.outputExtension).slice(0, 16) : null,
+        defaultArgs: Array.isArray(tool.compilerConfig?.defaultArgs) ? tool.compilerConfig.defaultArgs.map(String).slice(0, 30) : []
+      },
       runtimeConfig: {
         environment: tool.runtimeConfig?.environment && typeof tool.runtimeConfig.environment === "object" ? { ...tool.runtimeConfig.environment } : {},
         workingDirectory: tool.runtimeConfig?.workingDirectory ? String(tool.runtimeConfig.workingDirectory).slice(0, 512) : null
@@ -282,6 +288,58 @@
       language: null,
       matches: []
     };
+  }
+
+  async function registerCompiler(compiler = {}, id) {
+    const pid = projectId(id);
+    const name = String(compiler.name || "").trim().slice(0, 120);
+    const command = String(compiler.command || "").trim().slice(0, 80);
+    const languageId = String(compiler.languageId || "").trim().slice(0, 80);
+    if (!name || !command || !languageId) throw new Error("Compiler inválido.");
+
+    const tools = await getAll(pid);
+    const existing = tools.find(tool => tool.type === "compiler" && tool.name.toLowerCase() === name.toLowerCase());
+    const updated = normalize({
+      ...(existing || {}),
+      id: existing?.id || crypto.randomUUID(),
+      name,
+      type: "compiler",
+      version: existing?.version || String(compiler.version || "").trim().slice(0, 64),
+      status: existing?.status || "available",
+      languageId,
+      languageName: compiler.languageName ? String(compiler.languageName).slice(0, 80) : existing?.languageName || null,
+      source: compiler.source ? String(compiler.source).slice(0, 500) : existing?.source || null,
+      homepage: compiler.homepage ? String(compiler.homepage).slice(0, 500) : existing?.homepage || null,
+      description: compiler.description ? String(compiler.description).slice(0, 500) : existing?.description || "Compiler registrado no ANZUBA",
+      executables: [{ name: command, path: compiler.path ? String(compiler.path).trim() : null, args: Array.isArray(compiler.args) ? compiler.args.map(String).slice(0, 20) : [] }],
+      compilerConfig: {
+        languageId,
+        sourceExtensions: Array.isArray(compiler.sourceExtensions) ? [...new Set(compiler.sourceExtensions.map(String).map(value => value.toLowerCase()).filter(value => /^\\.[a-z0-9][a-z0-9._-]{0,15}$/.test(value)))].slice(0, 30) : [],
+        outputExtension: compiler.outputExtension ? String(compiler.outputExtension).trim().slice(0, 16) : null,
+        defaultArgs: Array.isArray(compiler.defaultArgs) ? compiler.defaultArgs.map(String).slice(0, 30) : []
+      }
+    });
+
+    const index = tools.findIndex(tool => tool.id === updated.id);
+    if (index >= 0) tools[index] = updated;
+    else tools.push(updated);
+    await saveAll(tools, pid);
+    return clone(updated);
+  }
+
+  async function listCompilers(languageId, id) {
+    const pid = projectId(id);
+    const language = String(languageId || "").trim().toLowerCase();
+    const tools = await getAll(pid);
+    return tools.filter(tool =>
+      tool.type === "compiler" &&
+      (!language || String(tool.compilerConfig?.languageId || tool.languageId || "").toLowerCase() === language)
+    ).map(clone);
+  }
+
+  async function findCompilerForLanguage(languageId, id) {
+    const compilers = await listCompilers(languageId, id);
+    return compilers.find(tool => tool.status === "installed") || compilers[0] || null;
   }
 
   async function health(id) {
@@ -1098,6 +1156,9 @@
     registerLanguage,
     findLanguageByFile,
     detectLanguage,
+    registerCompiler,
+    listCompilers,
+    findCompilerForLanguage,
     syncExecutables,
     executeExecutable
   };
@@ -1114,6 +1175,9 @@
   window.ANZUBA_AI_BRIDGE?.on("language.register", ({ language, id } = {}) => registerLanguage(language, id));
   window.ANZUBA_AI_BRIDGE?.on("language.detectFile", ({ filePath, id } = {}) => findLanguageByFile(filePath, id));
   window.ANZUBA_AI_BRIDGE?.on("language.detect", ({ filePath, content, id } = {}) => detectLanguage(filePath, content, id));
+  window.ANZUBA_AI_BRIDGE?.on("compiler.register", ({ compiler, id } = {}) => registerCompiler(compiler, id));
+  window.ANZUBA_AI_BRIDGE?.on("compiler.list", ({ languageId, id } = {}) => listCompilers(languageId, id));
+  window.ANZUBA_AI_BRIDGE?.on("compiler.find", ({ languageId, id } = {}) => findCompilerForLanguage(languageId, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executable.run", ({ name, args, cwd, user, id } = {}) => executeExecutable(name, { args, cwd, user }, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.search", ({ query, id } = {}) => catalog(query || {}, id));
