@@ -541,6 +541,76 @@
     return clone(updated);
   }
 
+  async function getBuildArtifacts(id) {
+    const pid = projectId(id);
+    const data = await window.ANZUBA_PROJECTS?.getData?.(pid);
+    if (!data || !Array.isArray(data.buildArtifacts)) return [];
+    return clone(data.buildArtifacts);
+  }
+
+  async function registerBuildArtifact(jobId, artifact = {}, id) {
+    const pid = projectId(id);
+    const job = await getCompileJob(jobId, pid);
+    if (!job) return null;
+
+    const path = String(artifact.path || job.outputPath || "").trim();
+    if (!path) throw new Error("Caminho do artefato inválido.");
+
+    const type = String(artifact.type || "build").trim().slice(0, 40) || "build";
+    const sizeBytes = Number.isFinite(Number(artifact.sizeBytes))
+      ? Math.max(0, Math.floor(Number(artifact.sizeBytes)))
+      : 0;
+
+    const artifacts = await getBuildArtifacts(pid);
+    const existing = artifacts.find(item => item.jobId === job.id && item.path === path);
+    const now = new Date().toISOString();
+    const value = {
+      id: existing?.id || `artifact_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      projectId: pid,
+      jobId: job.id,
+      path: path.slice(0, 512),
+      type,
+      sizeBytes,
+      checksum: artifact.checksum ? String(artifact.checksum).slice(0, 128) : null,
+      status: ["available", "missing", "invalid"].includes(artifact.status) ? artifact.status : "available",
+      createdAt: existing?.createdAt || now,
+      updatedAt: now
+    };
+
+    const index = artifacts.findIndex(item => item.id === value.id);
+    if (index >= 0) artifacts[index] = value;
+    else artifacts.push(value);
+
+    await window.ANZUBA_PROJECTS.setData({ buildArtifacts: artifacts.slice(-200) }, pid);
+    return clone(value);
+  }
+
+  async function getBuildArtifact(artifactId, id) {
+    const artifacts = await getBuildArtifacts(id);
+    return artifacts.find(item => item.id === String(artifactId || "").trim()) || null;
+  }
+
+  async function listBuildArtifacts(options = {}, id) {
+    const artifacts = await getBuildArtifacts(id);
+    const jobId = options?.jobId ? String(options.jobId).trim() : null;
+    const type = options?.type ? String(options.type).trim() : null;
+    return artifacts
+      .filter(item => !jobId || item.jobId === jobId)
+      .filter(item => !type || item.type === type)
+      .slice()
+      .reverse();
+  }
+
+  async function removeBuildArtifact(artifactId, id) {
+    const pid = projectId(id);
+    const artifacts = await getBuildArtifacts(pid);
+    const target = String(artifactId || "").trim();
+    const next = artifacts.filter(item => item.id !== target);
+    if (next.length === artifacts.length) return false;
+    await window.ANZUBA_PROJECTS.setData({ buildArtifacts: next }, pid);
+    return true;
+  }
+
   async function health(id) {
     const pid = projectId(id);
     const tools = await getAll(pid);
@@ -1365,6 +1435,11 @@
     listCompileJobs,
     createCompileJob,
     updateCompileJob,
+    getBuildArtifacts,
+    registerBuildArtifact,
+    getBuildArtifact,
+    listBuildArtifacts,
+    removeBuildArtifact,
     syncExecutables,
     executeExecutable
   };
@@ -1390,6 +1465,10 @@
   window.ANZUBA_AI_BRIDGE?.on("compiler.job.get", ({ jobId, id } = {}) => getCompileJob(jobId, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.jobs.list", ({ options, id } = {}) => listCompileJobs(options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.job.update", ({ jobId, patch, id } = {}) => updateCompileJob(jobId, patch || {}, id));
+  window.ANZUBA_AI_BRIDGE?.on("compiler.artifact.register", ({ jobId, artifact, id } = {}) => registerBuildArtifact(jobId, artifact || {}, id));
+  window.ANZUBA_AI_BRIDGE?.on("compiler.artifact.get", ({ artifactId, id } = {}) => getBuildArtifact(artifactId, id));
+  window.ANZUBA_AI_BRIDGE?.on("compiler.artifacts.list", ({ options, id } = {}) => listBuildArtifacts(options || {}, id));
+  window.ANZUBA_AI_BRIDGE?.on("compiler.artifact.remove", ({ artifactId, id } = {}) => removeBuildArtifact(artifactId, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executable.run", ({ name, args, cwd, user, id } = {}) => executeExecutable(name, { args, cwd, user }, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.search", ({ query, id } = {}) => catalog(query || {}, id));
