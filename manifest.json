@@ -35,6 +35,7 @@
         "src/core/os-manager.js",
         "src/core/process-manager.js",
         "src/core/user-manager.js",
+        "src/core/shell-manager.js",
         "src/core/ai-adapters.js",
         "src/content.js"
       ],
