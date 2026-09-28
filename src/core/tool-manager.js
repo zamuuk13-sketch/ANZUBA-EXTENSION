@@ -616,7 +616,9 @@
     satisfiesRange,
     catalog,
     recommend,
-    health
+    health,
+    setExecutables,
+    getExecutables
   };
 
   window.ANZUBA_AI_BRIDGE?.on("tools.executables.set", ({ toolId, executables, id } = {}) => setExecutables(toolId, executables || [], id));
