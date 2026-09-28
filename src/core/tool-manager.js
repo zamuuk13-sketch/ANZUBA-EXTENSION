@@ -62,6 +62,50 @@
     };
   }
 
+  async function registerLanguageRuntime(runtime = {}, id) {
+    const pid = projectId(id);
+    const name = String(runtime.name || "").trim().slice(0, 120);
+    const version = String(runtime.version || "").trim().slice(0, 64);
+    const command = String(runtime.command || "").trim().slice(0, 80);
+    if (!name || !command) throw new Error("Runtime de linguagem inválido.");
+
+    const tools = await getAll(pid);
+    const existing = tools.find(tool => tool.type === "runtime" && tool.name.toLowerCase() === name.toLowerCase());
+    const payload = {
+      id: existing?.id || crypto.randomUUID(),
+      name,
+      type: "runtime",
+      version,
+      description: String(runtime.description || "Runtime de linguagem do ANZUBA").slice(0, 500),
+      source: runtime.source ? String(runtime.source).slice(0, 500) : null,
+      sourceType: SOURCE_TYPES.includes(runtime.sourceType) ? runtime.sourceType : "official",
+      homepage: runtime.homepage ? String(runtime.homepage).slice(0, 500) : null,
+      license: runtime.license ? String(runtime.license).slice(0, 120) : null,
+      versions: Array.isArray(runtime.versions) ? runtime.versions : (version ? [version] : []),
+      path: runtime.path ? String(runtime.path).slice(0, 512) : null,
+      status: "installed",
+      dependencies: Array.isArray(runtime.dependencies) ? runtime.dependencies : [],
+      executables: [{ name: command, path: runtime.path ? String(runtime.path).trim() : null, args: [] }],
+      compatibility: runtime.compatibility || { requires: [], conflicts: [] },
+      installedAt: existing?.installedAt || new Date().toISOString(),
+      createdAt: existing?.createdAt || new Date().toISOString()
+    };
+
+    const normalized = normalize(payload);
+    const index = tools.findIndex(tool => tool.id === normalized.id);
+    if (index >= 0) tools[index] = normalized;
+    else tools.push(normalized);
+
+    await saveAll(tools, pid);
+    await syncExecutables(pid);
+    return clone(normalized);
+  }
+
+  async function listLanguageRuntimes(id) {
+    const tools = await getAll(id);
+    return tools.filter(tool => tool.type === "runtime" && tool.status === "installed").map(clone);
+  }
+
   async function health(id) {
     const pid = projectId(id);
     const tools = await getAll(pid);
