@@ -822,7 +822,7 @@
 
     const job = await createCompileJob(compilerId, sourcePath, {
       ...options,
-      args: prepared.args,
+      args: Array.isArray(options.args) ? options.args : [],
       output: prepared.output,
       cwd: prepared.cwd,
       user: prepared.user,
@@ -843,7 +843,7 @@
       const artifact = await registerBuildArtifact(job.id, {
         path: prepared.output,
         type: "build",
-        status: "available"
+        status: "missing"
       }, pid);
       result.artifact = artifact;
     }
