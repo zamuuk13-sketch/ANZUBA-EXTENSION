@@ -58,7 +58,7 @@
     };
   }
 
-  function catalog(query = {}, id) {
+  async function catalog(query = {}, id) {
     const text = String(query.query || "").trim().toLowerCase();
     const type = query.type ? String(query.type) : null;
     const status = query.status ? String(query.status) : null;
