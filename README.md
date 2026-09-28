@@ -132,6 +132,10 @@ Adicionado o gerenciador de CPU virtual do ANZUBA OS. Cada projeto possui seu pr
 
 Gerenciador de RAM virtual persistente e isolado por projeto, com total, uso, memória livre e alocações vinculadas a processos. Inclui os comandos `memory.status`, `memory.allocate`, `memory.free`, `memory.freeProcess`, `memory.total.set` e `memory.sync`. A memória vinculada a processos encerrados é liberada automaticamente.
 
+### Etapa 43/275 — Disco virtual
+
+Adicionado o gerenciador de disco virtual persistente e isolado por projeto, com capacidade total, espaço usado/livre, filesystem virtual, verificação de espaço e cálculo de utilização. A IA pode consultar com `disk.status`, sincronizar com `disk.sync`, alterar a capacidade com `disk.total.set`, verificar espaço com `disk.space.check` e consultar uso com `disk.usage`.
+
 ## Próximas etapas
 41–45: expansão do núcleo do ANZUBA OS
 46–52: armazenamento
