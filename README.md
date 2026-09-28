@@ -272,6 +272,10 @@ A detecção de linguagem foi ampliada além da extensão do arquivo. O ANZUBA a
 
 ### Etapa 70/275 — Registro de compiladores e mapeamento por linguagem
 
+### Etapa 71/275 — Validação de compiladores
+
+Adicionada a validação dos compiladores registrados. O ANZUBA verifica se o compilador existe, está associado a uma linguagem registrada, possui extensões de entrada válidas, tem executável configurado, está instalado e permanece compatível com as dependências/regras do projeto. A IA pode consultar o resultado pela API `ANZUBA_TOOLS.validateCompiler` ou pelo comando `compiler.validate`.
+
 Adicionado o registro de compiladores ao Tool Manager. Um compilador pode ser associado a uma linguagem, comando, versão, extensões de entrada, extensão de saída e argumentos padrão. A IA pode registrar, listar e localizar o compilador adequado através das APIs do Tool Manager e dos comandos Bridge correspondentes.
 
 
