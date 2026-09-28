@@ -124,6 +124,10 @@ stat, chmod, chown e administração de permissões.
 ### Etapa 40/275 — Auditoria e diagnóstico do bloco 31–40
 Auditoria completa, correções de integração/isolamento e diagnóstico integrado via getHealth/os.health.
 
+### Etapa 41/275 — CPU virtual
+
+Adicionado o gerenciador de CPU virtual do ANZUBA OS. Cada projeto possui seu próprio estado de CPU, com arquitetura, modelo, quantidade de núcleos, frequência, scheduler, quantum e utilização. A IA pode consultar o estado com `cpu.status`, alterar a quantidade de núcleos com `cpu.cores.set` e recalcular a utilização virtual com `cpu.tick`. O recurso é persistente e isolado por projeto.
+
 ## Próximas etapas
 41–45: expansão do núcleo do ANZUBA OS
 46–52: armazenamento
