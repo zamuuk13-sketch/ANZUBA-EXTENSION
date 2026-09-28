@@ -432,3 +432,19 @@ A Game Engine agora suporta relações pai/filho entre entidades. A IA pode defi
 ### Etapa 106/275 — Ordenação de entidades
 
 A Game Engine agora permite alterar a ordem das entidades dentro de uma cena. A operação valida o índice, limita o destino ao intervalo disponível, persiste a nova ordem por projeto e está disponível pelo AI Bridge através de `game.entity.reorder`.
+
+### Etapa 107/275 — Duplicação de entidades
+
+A Game Engine agora permite duplicar entidades existentes, preservando componentes e permitindo definir nome e pai opcional. A cópia recebe identidade própria, respeita o limite de entidades e permanece isolada por projeto. Bridge: `game.entity.duplicate`.
+
+### Etapa 108/275 — Estado ativo das entidades
+
+Adicionado controle persistente para ativar/desativar entidades e consultar seu estado. Bridge: `game.entity.enabled.set` e `game.entity.enabled.get`.
+
+### Etapa 109/275 — Visibilidade das entidades
+
+Adicionado controle persistente de visibilidade das entidades, com consulta do estado e integração ao AI Bridge. Bridge: `game.entity.visibility.set` e `game.entity.visibility.get`.
+
+### Etapa 110/275 — Diagnóstico da Game Engine + auditoria da década
+
+Adicionado diagnóstico integrado da Game Engine com verificação de configuração, cenas, entidades, componentes, hierarquias, IDs duplicados, pais ausentes, ciclos e isolamento por projeto. Bridge: `game.engine.diagnostics`. Após a implementação, foi realizada a varredura de bugs e a auditoria completa das etapas 101–110, com correções de validação de pai na duplicação e limpeza de referências hierárquicas ao remover entidades.
