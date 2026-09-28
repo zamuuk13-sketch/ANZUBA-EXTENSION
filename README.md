@@ -396,3 +396,7 @@ O AI Programmer agora consegue validar os arquivos de implementação gerados de
 ### Etapa 98/275 — Preparação automática do build
 
 O AI Programmer agora consegue encaminhar uma implementação validada para o Build System. A operação resolve o compilador instalado pela linguagem quando necessário, valida a origem e monta a preparação de build com saída, argumentos, ambiente, usuário e diretório de trabalho. O plano passa para a etapa de build em execução quando a preparação é aceita. API: `ANZUBA_AI_PROGRAMMER.prepareProgramBuild`. Bridge: `ai.program.build.prepare`.
+
+### Etapa 99/275 — Execução automática do build
+
+O AI Programmer agora consegue executar o pipeline de build preparado para um projeto. Ele resolve o compilador quando necessário, envia a implementação ao Build System, acompanha o resultado inicial e atualiza o plano para build concluído ou falho. API: `ANZUBA_AI_PROGRAMMER.runProgramBuild`. Bridge: `ai.program.build.run`.
