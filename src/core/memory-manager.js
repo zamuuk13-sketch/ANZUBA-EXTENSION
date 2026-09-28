@@ -98,9 +98,17 @@
       throw new Error("Memória virtual insuficiente.");
     }
 
+    const allocationPid = Number(options.pid || 0);
+    if (allocationPid > 0) {
+      const process = await window.ANZUBA_PROCESSES?.get?.(allocationPid, pid);
+      if (!process || process.state !== "running") {
+        throw new Error("Processo inválido para alocação de memória.");
+      }
+    }
+
     const allocation = normalizeAllocation({
       id: `mem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      pid: options.pid || 0,
+      pid: allocationPid,
       process: options.process || "process",
       sizeMB: rounded,
       createdAt: new Date().toISOString()
