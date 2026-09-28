@@ -14,6 +14,7 @@
         updatedAt: null
       }
     },
+    snapshots: {},
     updatedAt: null
   };
 
@@ -52,7 +53,10 @@
       entries: stored.entries && typeof stored.entries === "object" ? clone(stored.entries) : {},
       volumes: stored.volumes && typeof stored.volumes === "object"
         ? clone(stored.volumes)
-        : clone(DEFAULT_STORAGE.volumes)
+        : clone(DEFAULT_STORAGE.volumes),
+      snapshots: stored.snapshots && typeof stored.snapshots === "object"
+        ? clone(stored.snapshots)
+        : {}
     };
   }
 
@@ -64,6 +68,7 @@
       ...clone(DEFAULT_STORAGE),
       ...clone(state),
       quotaMB: Math.max(1, Number(state.quotaMB || DEFAULT_STORAGE.quotaMB)),
+      snapshots: clone(state.snapshots || {}),
       updatedAt: new Date().toISOString()
     };
 
@@ -328,6 +333,92 @@
       .sort();
   }
 
+  function normalizeSnapshotName(name) {
+    const value = String(name ?? "").trim().toLowerCase();
+    if (!value || value.length > 80 || !/^[a-z0-9_-]+$/.test(value)) return null;
+    return value;
+  }
+
+  async function listSnapshots(id) {
+    const state = await getState(id);
+    if (!state) return [];
+    return Object.values(state.snapshots || {})
+      .map(snapshot => ({
+        id: snapshot.id,
+        name: snapshot.name,
+        createdAt: snapshot.createdAt,
+        entries: Object.keys(snapshot.entries || {}).length,
+        volumes: Object.keys(snapshot.volumes || {}).length
+      }))
+      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  }
+
+  async function createSnapshot(name, id) {
+    const pid = projectId(id);
+    const state = await getState(pid);
+    if (!state) return null;
+
+    const normalized = normalizeSnapshotName(name) || `snapshot-${Date.now()}`;
+    if (state.snapshots[normalized]) throw new Error("Snapshot já existe.");
+
+    const snapshot = {
+      id: normalized,
+      name: normalized,
+      createdAt: new Date().toISOString(),
+      entries: clone(state.entries),
+      volumes: clone(state.volumes)
+    };
+
+    state.snapshots[normalized] = snapshot;
+    await saveState(state, pid);
+
+    window.dispatchEvent(new CustomEvent("anzuba:storage-snapshot-updated", {
+      detail: { projectId: pid, snapshotId: normalized, action: "created" }
+    }));
+
+    return {
+      id: snapshot.id,
+      name: snapshot.name,
+      createdAt: snapshot.createdAt,
+      entries: Object.keys(snapshot.entries).length,
+      volumes: Object.keys(snapshot.volumes).length
+    };
+  }
+
+  async function restoreSnapshot(name, id) {
+    const pid = projectId(id);
+    const state = await getState(pid);
+    const normalized = normalizeSnapshotName(name);
+    if (!state || !normalized || !state.snapshots[normalized]) return false;
+
+    const snapshot = state.snapshots[normalized];
+    state.entries = clone(snapshot.entries || {});
+    state.volumes = clone(snapshot.volumes || DEFAULT_STORAGE.volumes);
+    await saveState(state, pid);
+
+    window.dispatchEvent(new CustomEvent("anzuba:storage-snapshot-updated", {
+      detail: { projectId: pid, snapshotId: normalized, action: "restored" }
+    }));
+
+    return true;
+  }
+
+  async function removeSnapshot(name, id) {
+    const pid = projectId(id);
+    const state = await getState(pid);
+    const normalized = normalizeSnapshotName(name);
+    if (!state || !normalized || !state.snapshots[normalized]) return false;
+
+    delete state.snapshots[normalized];
+    await saveState(state, pid);
+
+    window.dispatchEvent(new CustomEvent("anzuba:storage-snapshot-updated", {
+      detail: { projectId: pid, snapshotId: normalized, action: "removed" }
+    }));
+
+    return true;
+  }
+
   async function status(id) {
     const state = await getState(id);
     if (!state) return null;
@@ -344,6 +435,7 @@
       usagePercent: Math.round((usedBytes / quotaBytes) * 10000) / 100,
       entries: Object.keys(state.entries).length,
       volumes: Object.keys(state.volumes).length,
+      snapshots: Object.keys(state.snapshots || {}).length,
       updatedAt: state.updatedAt
     };
   }
@@ -364,7 +456,11 @@
     volumeStatus,
     volumeSet,
     volumeGet,
-    volumeList
+    volumeList,
+    listSnapshots,
+    createSnapshot,
+    restoreSnapshot,
+    removeSnapshot
   };
 
   window.ANZUBA_AI_BRIDGE?.on("storage.get", ({ key, id } = {}) => get(key, id));
@@ -382,6 +478,10 @@
   window.ANZUBA_AI_BRIDGE?.on("storage.volume.set", ({ name, key, value, id } = {}) => volumeSet(name, key, value, id));
   window.ANZUBA_AI_BRIDGE?.on("storage.volume.get", ({ name, key, id } = {}) => volumeGet(name, key, id));
   window.ANZUBA_AI_BRIDGE?.on("storage.volume.list", ({ name, prefix, id } = {}) => volumeList(name, prefix, id));
+  window.ANZUBA_AI_BRIDGE?.on("storage.snapshots.list", ({ id } = {}) => listSnapshots(id));
+  window.ANZUBA_AI_BRIDGE?.on("storage.snapshot.create", ({ name, id } = {}) => createSnapshot(name, id));
+  window.ANZUBA_AI_BRIDGE?.on("storage.snapshot.restore", ({ name, id } = {}) => restoreSnapshot(name, id));
+  window.ANZUBA_AI_BRIDGE?.on("storage.snapshot.remove", ({ name, id } = {}) => removeSnapshot(name, id));
 
   setTimeout(() => {
     const active = window.ANZUBA_PROJECTS?.getActive?.();
