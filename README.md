@@ -412,3 +412,7 @@ Iniciada a Game Engine do ANZUBA com um núcleo persistente de cenas e entidades
 ### Etapa 101/275 — Núcleo da Game Engine
 
 Iniciada a Fase 10 com o núcleo da Game Engine. O módulo agora mantém configuração persistente por projeto, suporta modo 2D/3D, cenas e entidades, fornece status agregado do engine e expõe comandos pelo AI Bridge. A ordem do manifesto também foi corrigida para carregar Project Manager e Virtual FS antes da Game Engine, garantindo que suas dependências estejam disponíveis.
+
+### Etapa 102/275 — Transformações de entidades
+
+A Game Engine agora possui posição, rotação e escala 3D normalizadas para entidades. Foram adicionadas operações para definir e consultar esses dados, com persistência por projeto e acesso pelo AI Bridge. Valores inválidos recebem valores padrão seguros.
