@@ -188,6 +188,10 @@ O Tool Manager agora mantém múltiplas versões por ferramenta, permite adicion
 
 O Tool Manager agora gerencia dependências entre ferramentas. A IA pode definir dependências, consultar o que uma ferramenta precisa e descobrir quais outras ferramentas dependem dela, com validação de referências e prevenção de dependência da própria ferramenta.
 
+### Etapa 57/275 — Resolução automática de dependências
+
+O Tool Manager agora resolve a árvore de dependências antes da instalação. Ele produz uma ordem de instalação, detecta dependências ausentes e ciclos e oferece instalação encadeada pelo comando `tools.install.withDependencies`.
+
 ## Próximas etapas
 41–45: expansão do núcleo do ANZUBA OS
 46–52: armazenamento
