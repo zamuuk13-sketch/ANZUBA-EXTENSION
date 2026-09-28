@@ -416,3 +416,7 @@ Iniciada a Fase 10 com o núcleo da Game Engine. O módulo agora mantém configu
 ### Etapa 102/275 — Transformações de entidades
 
 A Game Engine agora possui posição, rotação e escala 3D normalizadas para entidades. Foram adicionadas operações para definir e consultar esses dados, com persistência por projeto e acesso pelo AI Bridge. Valores inválidos recebem valores padrão seguros.
+
+### Etapa 103/275 — Cena ativa
+
+A Game Engine agora permite selecionar e desativar a cena ativa do projeto. A seleção é persistente na configuração da engine, validada contra as cenas existentes e exposta pelo AI Bridge com `game.scene.activate` e `game.scene.deactivate`.
