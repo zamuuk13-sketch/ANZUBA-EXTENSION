@@ -891,6 +891,59 @@
     };
   }
 
+  async function validateBuildPlan(plan = {}, id) {
+    const pid = projectId(id);
+    const issues = [];
+    if (!plan || typeof plan !== "object" || Array.isArray(plan)) {
+      return { projectId: pid, ok: false, issues: ["plan-invalid"] };
+    }
+
+    const targetName = String(plan.target?.name || "").trim();
+    if (!targetName) issues.push("target-missing");
+
+    const target = targetName ? await getBuildTarget(targetName, pid) : null;
+    if (targetName && !target) issues.push("target-not-found");
+
+    if (targetName && target) {
+      const targetValidation = await validateBuildTarget(targetName, pid);
+      if (!targetValidation.ok) issues.push("target-invalid");
+    }
+
+    const compilerId = String(plan.compiler?.id || "").trim();
+    if (compilerId) {
+      const compilerValidation = await validateCompiler(compilerId, pid);
+      if (!compilerValidation.ok) issues.push("compiler-invalid");
+    } else {
+      issues.push("compiler-missing");
+    }
+
+    const sourcePath = String(plan.sourcePath || "").trim();
+    if (sourcePath) {
+      const sourceValidation = await validateBuildSource(sourcePath, compilerId || null, pid);
+      if (!sourceValidation.ok) issues.push("source-invalid");
+    } else {
+      issues.push("source-missing");
+    }
+
+    const outputPath = String(plan.outputPath || "").trim();
+    if (outputPath && !outputPath.startsWith("/")) issues.push("invalid-output-path");
+
+    const cwd = String(plan.cwd || "").trim();
+    if (cwd && !cwd.startsWith("/")) issues.push("invalid-working-directory");
+
+    if (!plan.platform) issues.push("platform-missing");
+    if (!plan.architecture) issues.push("architecture-missing");
+    if (!plan.format) issues.push("format-missing");
+
+    const uniqueIssues = [...new Set(issues)];
+    return {
+      projectId: pid,
+      ok: uniqueIssues.length === 0,
+      issues: uniqueIssues,
+      plan: clone(plan)
+    };
+  }
+
   async function prepareBuildTarget(name, sourcePath = null, options = {}, id) {
     const pid = projectId(id);
     const resolved = await resolveBuildTarget(name, sourcePath, pid);
@@ -1872,6 +1925,7 @@
     getBuildTargets,
     resolveBuildTarget,
     prepareBuildTarget,
+    validateBuildPlan,
     getBuildTarget,
     setBuildTarget,
     removeBuildTarget,
@@ -1915,6 +1969,7 @@
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifacts.list", ({ options, id } = {}) => listBuildArtifacts(options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifact.remove", ({ artifactId, id } = {}) => removeBuildArtifact(artifactId, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifact.validate", ({ artifactId, id } = {}) => validateBuildArtifact(artifactId, id));
+  window.ANZUBA_AI_BRIDGE?.on("build.plan.validate", ({ plan, id } = {}) => validateBuildPlan(plan || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("build.target.prepare", ({ name, sourcePath, options, id } = {}) => prepareBuildTarget(name, sourcePath, options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("build.target.resolve", ({ name, sourcePath, id } = {}) => resolveBuildTarget(name, sourcePath, id));
   window.ANZUBA_AI_BRIDGE?.on("build.target.get", ({ name, id } = {}) => getBuildTarget(name, id));
