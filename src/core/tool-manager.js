@@ -51,6 +51,41 @@
     };
   }
 
+  async function setDependencies(toolId, dependencies = [], id) {
+    const pid = projectId(id);
+    const tools = await getAll(pid);
+    const index = tools.findIndex(tool => tool.id === toolId);
+    if (index < 0) return null;
+    if (!Array.isArray(dependencies)) throw new Error("Dependências inválidas.");
+    const values = [...new Set(dependencies.map(String).map(item => item.trim()).filter(Boolean))].slice(0, 50);
+    if (values.includes(toolId)) throw new Error("Uma ferramenta não pode depender dela mesma.");
+    const missing = values.filter(dep => !tools.some(tool => tool.id === dep));
+    if (missing.length) throw new Error("Dependência não encontrada: " + missing.join(", "));
+    tools[index] = normalize({ ...tools[index], dependencies: values, id: tools[index].id });
+    await saveAll(tools, pid);
+    return clone(tools[index]);
+  }
+
+  async function getDependencies(toolId, id) {
+    const tool = await get(toolId, id);
+    if (!tool) return null;
+    const tools = await getAll(id);
+    return {
+      toolId: tool.id,
+      dependencies: (tool.dependencies || []).map(depId => tools.find(item => item.id === depId)).filter(Boolean).map(clone)
+    };
+  }
+
+  async function getDependents(toolId, id) {
+    const tool = await get(toolId, id);
+    if (!tool) return null;
+    const tools = await getAll(id);
+    return {
+      toolId: tool.id,
+      dependents: tools.filter(item => Array.isArray(item.dependencies) && item.dependencies.includes(toolId)).map(clone)
+    };
+  }
+
   async function addVersion(toolId, version, id) {
     const pid = projectId(id);
     const tools = await getAll(pid);
@@ -215,6 +250,9 @@
     uninstall
   };
 
+  window.ANZUBA_AI_BRIDGE?.on("tools.dependencies.set", ({ toolId, dependencies, id } = {}) => setDependencies(toolId, dependencies || [], id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.dependencies.get", ({ toolId, id } = {}) => getDependencies(toolId, id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.dependents.get", ({ toolId, id } = {}) => getDependents(toolId, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.version.add", ({ toolId, version, id } = {}) => addVersion(toolId, version, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.version.remove", ({ toolId, version, id } = {}) => removeVersion(toolId, version, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.version.select", ({ toolId, version, id } = {}) => selectVersion(toolId, version, id));
