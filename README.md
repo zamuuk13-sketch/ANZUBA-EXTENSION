@@ -377,3 +377,6 @@ O AI Programmer agora analisa a solicitação antes de criar o plano, detectando
 ### Etapa 93/275 — Preparação automática do workspace
 
 O AI Programmer agora pode preparar o workspace virtual de um plano de projeto. Ele cria uma raiz isolada em `/workspace/` com diretórios para código-fonte, assets, builds e testes, reutiliza diretórios já existentes e registra o workspace no plano. O comando Bridge `ai.program.workspace.prepare` executa essa preparação por projeto.
+### Etapa 94/275 — Scaffold inicial do projeto
+
+O AI Programmer agora consegue criar a estrutura inicial de código dentro do workspace do plano. O scaffold escolhe um arquivo de entrada conforme a linguagem detectada, aceita arquivos adicionais fornecidos pela IA, limita o tamanho/quantidade dos arquivos e impede escrita fora do workspace do projeto. O comando Bridge `ai.program.scaffold` executa essa etapa.
