@@ -135,6 +135,38 @@
     return { projectId: pid, ok: true, activeSceneId: null };
   }
 
+  function normalizeComponentMap(components) {
+    return components && typeof components === "object" && !Array.isArray(components)
+      ? clone(components)
+      : {};
+  }
+
+  async function setEntityComponents(sceneId, entityId, components = {}, id) {
+    const pid = projectId(id);
+    const scenes = await getScenes(pid);
+    const scene = scenes.find(item => item.id === String(sceneId || "").trim());
+    if (!scene) return { projectId: pid, ok: false, reason: "scene-not-found" };
+    const entity = scene.entities.find(item => item.id === String(entityId || "").trim());
+    if (!entity) return { projectId: pid, ok: false, reason: "entity-not-found" };
+    entity.components = normalizeComponentMap(components);
+    entity.updatedAt = new Date().toISOString();
+    scene.updatedAt = entity.updatedAt;
+    await window.ANZUBA_PROJECTS?.setData?.({ [SCENE_KEY]: scenes }, pid);
+    return { projectId: pid, ok: true, entity: clone(entity) };
+  }
+
+  async function getEntityComponents(sceneId, entityId, id) {
+    const scene = await getScene(sceneId, id);
+    if (!scene) return { projectId: projectId(id), ok: false, reason: "scene-not-found" };
+    const entity = scene.entities.find(item => item.id === String(entityId || "").trim());
+    if (!entity) return { projectId: projectId(id), ok: false, reason: "entity-not-found" };
+    return {
+      projectId: projectId(id),
+      ok: true,
+      components: normalizeComponentMap(entity.components)
+    };
+  }
+
   async function createScene(name, options = {}, id) {
     const pid = projectId(id);
     const scenes = await getScenes(pid);
@@ -222,7 +254,9 @@
     removeEntity,
     updateEntity,
     setEntityTransform,
-    getEntityTransform
+    getEntityTransform,
+    setEntityComponents,
+    getEntityComponents
   };
 
   window.ANZUBA_AI_BRIDGE?.on("game.engine.configure", ({ options, id } = {}) =>
@@ -241,6 +275,11 @@
     getScene(sceneId, id));
   window.ANZUBA_AI_BRIDGE?.on("game.scenes.list", ({ id } = {}) =>
     listScenes(id));
+  window.ANZUBA_AI_BRIDGE?.on("game.entity.components.set", ({ sceneId, entityId, components, id } = {}) =>
+    setEntityComponents(sceneId, entityId, components || {}, id));
+  window.ANZUBA_AI_BRIDGE?.on("game.entity.components.get", ({ sceneId, entityId, id } = {}) =>
+    getEntityComponents(sceneId, entityId, id));
+
   window.ANZUBA_AI_BRIDGE?.on("game.entity.transform.set", ({ sceneId, entityId, transform, id } = {}) =>
     setEntityTransform(sceneId, entityId, transform || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("game.entity.transform.get", ({ sceneId, entityId, id } = {}) =>
