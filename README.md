@@ -269,6 +269,12 @@ Adicionada a camada de identificação de linguagens do projeto. O ANZUBA pode r
 A detecção de linguagem foi ampliada além da extensão do arquivo. O ANZUBA agora pode analisar shebangs como `#!/usr/bin/env python` e pistas básicas do conteúdo para identificar a linguagem registrada no projeto. A IA pode usar `ANZUBA_TOOLS.detectLanguage` ou o comando `language.detect`, recebendo também o método usado na identificação.
 
 
+
+### Etapa 70/275 — Registro de compiladores e mapeamento por linguagem
+
+Adicionado o registro de compiladores ao Tool Manager. Um compilador pode ser associado a uma linguagem, comando, versão, extensões de entrada, extensão de saída e argumentos padrão. A IA pode registrar, listar e localizar o compilador adequado através das APIs do Tool Manager e dos comandos Bridge correspondentes.
+
+
 ### Etapa 59/275 — Catálogo inteligente de ferramentas
 
 O Tool Manager agora possui busca e recomendação local de ferramentas, com filtros por tipo/status, pontuação por relevância, prioridade para correspondência de nome e limite controlado de resultados. Tudo permanece isolado por projeto.
