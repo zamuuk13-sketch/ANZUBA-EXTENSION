@@ -1,5 +1,10 @@
 # ANZUBA
 
+### Etapa 40/275 — Auditoria completa do bloco 31–40
+
+Foi realizada a varredura de bugs e a verificação de cumprimento das etapas 31–40. Foram corrigidos problemas reais de interpretação das permissões octais (`755`, `775`, etc.), isolamento por projeto em comandos do shell, descoberta de executáveis sem permissão de execução, validação de usuários bloqueados em processos, integração da identidade de usuários com o ANZUBA OS, quebras de linha inválidas no shell e duplicação da documentação da etapa 31. As APIs, ordem do manifest, persistência por projeto e integrações principais do bloco foram conferidas novamente.
+
+
 ### Etapa 39/275 — Administração do filesystem virtual
 
 O filesystem virtual agora possui uma camada de administração de permissões. Arquivos e diretórios podem expor metadados com proprietário, grupo, modo e tamanho; o usuário proprietário pode alterar o modo com `chmod`, enquanto somente `root` pode transferir a propriedade com `chown`. O shell ganhou `stat`, `chmod` e `chown`, sempre operando dentro do ambiente virtual do projeto. A etapa também reforça as verificações de leitura, escrita, navegação, criação e remoção usando as permissões persistidas.
