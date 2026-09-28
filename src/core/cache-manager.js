@@ -92,6 +92,11 @@
     const normalized = normalizeKey(key);
     if (!state || !normalized) throw new Error("Chave de cache inválida.");
 
+    if (!options || typeof options !== "object" || Array.isArray(options)) options = {};
+    Object.keys(state.entries).forEach(entryKey => {
+      if (isExpired(state.entries[entryKey])) delete state.entries[entryKey];
+    });
+
     const ttlMs = options.ttlMs == null ? 0 : Number(options.ttlMs);
     if (!Number.isFinite(ttlMs) || ttlMs < 0) throw new Error("TTL de cache inválido.");
 
@@ -180,6 +185,9 @@
     if (!state) return null;
     const quota = Number(quotaMB);
     if (!Number.isInteger(quota) || quota < 1) throw new Error("Quota de cache inválida.");
+    Object.keys(state.entries).forEach(key => {
+      if (isExpired(state.entries[key])) delete state.entries[key];
+    });
     const usedBytes = Object.values(state.entries)
       .reduce((sum, entry) => sum + Number(entry?.sizeBytes || 0), 0);
     if (usedBytes > quota * 1024 * 1024) {
