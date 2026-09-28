@@ -176,6 +176,10 @@ Adicionada manutenção e reconciliação do armazenamento virtual. O ANZUBA rec
 
 Criado o núcleo do gerenciador de ferramentas virtual por projeto. Ele mantém catálogo, tipo, versão, origem, caminho, dependências e estado das ferramentas, com instalação e remoção controladas pelo ANZUBA. A IA pode usar `tools.list`, `tools.get`, `tools.register`, `tools.install` e `tools.uninstall`.
 
+### Etapa 54/275 — Metadados e fontes de ferramentas
+
+O gerenciador de ferramentas agora registra tipo de fonte, página oficial, licença e versões disponíveis. A IA pode atualizar metadados com `tools.metadata.update` e consultar as fontes com `tools.sources.get`, mantendo essas informações isoladas por projeto.
+
 ## Próximas etapas
 41–45: expansão do núcleo do ANZUBA OS
 46–52: armazenamento
