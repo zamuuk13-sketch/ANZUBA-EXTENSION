@@ -45,7 +45,7 @@
       path: tool.path ? String(tool.path).slice(0, 512) : null,
       status,
       dependencies: Array.isArray(tool.dependencies) ? tool.dependencies.map(String).slice(0, 50) : [],
-      compatibility: {
+      executables: Array.isArray(tool.executables) ? tool.executables.map(item => {\n        if (typeof item === "string") return { name: String(item).trim(), path: null, args: [] };\n        return { name: String(item?.name || "").trim(), path: item?.path ? String(item.path).trim() : null, args: Array.isArray(item?.args) ? item.args.map(String).slice(0, 20) : [] };\n      }).filter(item => /^[A-Za-z0-9._-]{1,80}$/.test(item.name)).slice(0, 50) : [],\n      compatibility: {
         requires: Array.isArray(tool.compatibility?.requires) ? tool.compatibility.requires.map(item => ({
           toolId: String(item?.toolId || "").trim(),
           range: String(item?.range || "").trim().slice(0, 64)
@@ -446,6 +446,38 @@
     return tool ? { toolId: tool.id, current: tool.version || null, versions: [...(tool.versions || [])] } : null;
   }
 
+  async function setExecutables(toolId, executables = [], id) {
+    const pid = projectId(id);
+    const tools = await getAll(pid);
+    const index = tools.findIndex(tool => tool.id === toolId);
+    if (index < 0) return null;
+    if (!Array.isArray(executables)) throw new Error("Executáveis inválidos.");
+
+    const values = [...new Set(executables.map(item => {
+      if (typeof item === "string") return { name: item, path: null, args: [] };
+      return {
+        name: String(item?.name || "").trim(),
+        path: item?.path ? String(item.path).trim() : null,
+        args: Array.isArray(item?.args) ? item.args.map(String).slice(0, 20) : []
+      };
+    }).filter(item => /^[A-Za-z0-9._-]{1,80}$/.test(item.name)))]
+      .slice(0, 50);
+
+    tools[index] = normalize({ ...tools[index], executables: values, id: tools[index].id });
+    await saveAll(tools, pid);
+    return clone(tools[index]);
+  }
+
+  async function getExecutables(toolId, id) {
+    const tool = await get(toolId, id);
+    return tool ? {
+      toolId: tool.id,
+      name: tool.name,
+      installed: tool.status === "installed",
+      executables: clone(tool.executables || [])
+    } : null;
+  }
+
   async function updateMetadata(toolId, metadata = {}, id) {
     const pid = projectId(id);
     const tools = await getAll(pid);
@@ -583,7 +615,7 @@
     health
   };
 
-  window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.executables.set", ({ toolId, executables, id } = {}) => setExecutables(toolId, executables || [], id));\n  window.ANZUBA_AI_BRIDGE?.on("tools.executables.get", ({ toolId, id } = {}) => getExecutables(toolId, id));\n  window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.search", ({ query, id } = {}) => catalog(query || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.recommend", ({ query, id } = {}) => recommend(query || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.compatibility.set", ({ toolId, compatibility, id } = {}) => setCompatibility(toolId, compatibility || {}, id));
