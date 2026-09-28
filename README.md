@@ -1,5 +1,10 @@
 # ANZUBA
 
+### Etapa 39/275 — Administração do filesystem virtual
+
+O filesystem virtual agora possui uma camada de administração de permissões. Arquivos e diretórios podem expor metadados com proprietário, grupo, modo e tamanho; o usuário proprietário pode alterar o modo com `chmod`, enquanto somente `root` pode transferir a propriedade com `chown`. O shell ganhou `stat`, `chmod` e `chown`, sempre operando dentro do ambiente virtual do projeto. A etapa também reforça as verificações de leitura, escrita, navegação, criação e remoção usando as permissões persistidas.
+
+
 ### Etapa 38/275 — Permissões do filesystem virtual
 
 O filesystem do ANZUBA agora possui proprietário, grupo e modo de acesso nos arquivos e diretórios. As operações de leitura, listagem, criação, escrita, navegação e remoção podem consultar o usuário virtual através do gerenciador de permissões. O shell passou a respeitar essas permissões, conectando usuários/grupos do ANZUBA OS ao filesystem sem acessar o sistema de arquivos real do dispositivo.
