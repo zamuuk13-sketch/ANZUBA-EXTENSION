@@ -261,6 +261,27 @@
     };
   }
 
+  async function reorderEntity(sceneId, entityId, index, id) {
+    const pid = projectId(id);
+    const scenes = await getScenes(pid);
+    const scene = scenes.find(item => item.id === String(sceneId || "").trim());
+    if (!scene) return { projectId: pid, ok: false, reason: "scene-not-found" };
+    const targetId = String(entityId || "").trim();
+    const currentIndex = scene.entities.findIndex(entity => entity.id === targetId);
+    if (currentIndex < 0) return { projectId: pid, ok: false, reason: "entity-not-found" };
+
+    const numericIndex = Number(index);
+    if (!Number.isFinite(numericIndex)) {
+      return { projectId: pid, ok: false, reason: "invalid-index" };
+    }
+    const nextIndex = Math.max(0, Math.min(scene.entities.length - 1, Math.trunc(numericIndex)));
+    const [entity] = scene.entities.splice(currentIndex, 1);
+    scene.entities.splice(nextIndex, 0, entity);
+    scene.updatedAt = new Date().toISOString();
+    await window.ANZUBA_PROJECTS?.setData?.({ [SCENE_KEY]: scenes }, pid);
+    return { projectId: pid, ok: true, scene: clone(scene), entity: clone(entity), index: nextIndex };
+  }
+
   async function removeEntity(sceneId, entityId, id) {
     const pid = projectId(id);
     const scenes = await getScenes(pid);
@@ -312,7 +333,8 @@
     setEntityComponents,
     getEntityComponents,
     setEntityParent,
-    getEntityChildren
+    getEntityChildren,
+    reorderEntity
   };
 
   window.ANZUBA_AI_BRIDGE?.on("game.engine.configure", ({ options, id } = {}) =>
@@ -331,6 +353,9 @@
     getScene(sceneId, id));
   window.ANZUBA_AI_BRIDGE?.on("game.scenes.list", ({ id } = {}) =>
     listScenes(id));
+  window.ANZUBA_AI_BRIDGE?.on("game.entity.reorder", ({ sceneId, entityId, index, id } = {}) =>
+    reorderEntity(sceneId, entityId, index, id));
+
   window.ANZUBA_AI_BRIDGE?.on("game.entity.parent.set", ({ sceneId, entityId, parentId, id } = {}) =>
     setEntityParent(sceneId, entityId, parentId, id));
   window.ANZUBA_AI_BRIDGE?.on("game.entity.children.get", ({ sceneId, entityId, id } = {}) =>
