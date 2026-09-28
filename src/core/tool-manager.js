@@ -891,6 +891,59 @@
     };
   }
 
+  async function prepareBuildTarget(name, sourcePath = null, options = {}, id) {
+    const pid = projectId(id);
+    const resolved = await resolveBuildTarget(name, sourcePath, pid);
+    if (!resolved.ok) return resolved;
+
+    const selectedSource = resolved.sourcePath;
+    let sourceValidation = null;
+    if (selectedSource) {
+      if (!window.ANZUBA_TOOLS?.validateBuildSource) {
+        return { projectId: pid, ok: false, reason: "source-validator-unavailable", resolved };
+      }
+      sourceValidation = await validateBuildSource(selectedSource, resolved.compiler?.id || null, pid);
+      if (!sourceValidation.ok) {
+        return { projectId: pid, ok: false, reason: "source-invalid", resolved, sourceValidation };
+      }
+    }
+
+    const profileEnv = resolved.profile?.environment && typeof resolved.profile.environment === "object"
+      ? resolved.profile.environment : {};
+    const targetEnv = resolved.target?.environment && typeof resolved.target.environment === "object"
+      ? resolved.target.environment : {};
+    const optionEnv = options?.environment && typeof options.environment === "object"
+      ? options.environment : {};
+
+    const environment = { ...profileEnv, ...targetEnv, ...optionEnv };
+    const args = [
+      ...resolved.args,
+      ...(Array.isArray(options?.args) ? options.args.map(String).slice(0, 50) : [])
+    ];
+
+    const cwd = String(options?.cwd || resolved.profile?.workingDirectory || "/workspace").trim() || "/workspace";
+    const user = String(options?.user || resolved.profile?.user || "ai").trim() || "ai";
+    const outputPath = String(options?.output || resolved.outputPath || "").trim() || null;
+
+    return {
+      projectId: pid,
+      ok: true,
+      target: resolved.target,
+      compiler: resolved.compiler,
+      profile: resolved.profile,
+      sourcePath: selectedSource,
+      outputPath,
+      args,
+      cwd,
+      user,
+      environment,
+      platform: resolved.platform,
+      architecture: resolved.architecture,
+      format: resolved.format,
+      sourceValidation
+    };
+  }
+
   async function getBuildTargets(id) {
     const pid = projectId(id);
     const data = await window.ANZUBA_PROJECTS?.getData?.(pid);
@@ -1818,6 +1871,7 @@
     validateBuildArtifact,
     getBuildTargets,
     resolveBuildTarget,
+    prepareBuildTarget,
     getBuildTarget,
     setBuildTarget,
     removeBuildTarget,
@@ -1861,6 +1915,7 @@
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifacts.list", ({ options, id } = {}) => listBuildArtifacts(options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifact.remove", ({ artifactId, id } = {}) => removeBuildArtifact(artifactId, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifact.validate", ({ artifactId, id } = {}) => validateBuildArtifact(artifactId, id));
+  window.ANZUBA_AI_BRIDGE?.on("build.target.prepare", ({ name, sourcePath, options, id } = {}) => prepareBuildTarget(name, sourcePath, options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("build.target.resolve", ({ name, sourcePath, id } = {}) => resolveBuildTarget(name, sourcePath, id));
   window.ANZUBA_AI_BRIDGE?.on("build.target.get", ({ name, id } = {}) => getBuildTarget(name, id));
   window.ANZUBA_AI_BRIDGE?.on("build.targets.list", ({ id } = {}) => getBuildTargets(id));
