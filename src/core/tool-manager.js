@@ -865,15 +865,9 @@
 
     let compiler = null;
     let profile = null;
-
     if (target.compilerId) compiler = await get(target.compilerId, pid);
     if (target.profile) profile = await getBuildProfile(target.profile, pid);
-
     if (!compiler && profile?.compilerId) compiler = await get(profile.compilerId, pid);
-    if (!compiler && target.platform) {
-      const candidates = await listCompilers(null, pid);
-      compiler = candidates.find(item => item.status === "installed") || null;
-    }
 
     const resolvedSource = sourcePath ? String(sourcePath).trim() : (target.sourcePath || null);
     const resolvedOutput = target.outputPath || profile?.outputPath || null;
