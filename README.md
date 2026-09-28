@@ -204,6 +204,10 @@ Adicionadas busca e recomendação local com filtros, pontuação de relevância
 
 Adicionado diagnóstico de integridade do catálogo, detectando IDs inválidos/duplicados, tipos ou estados inválidos, dependências ausentes e referências de compatibilidade quebradas. A IA pode consultar o diagnóstico com `tools.health`.
 
+### Etapa 62/275 — Resolução de executáveis
+
+O Tool Manager agora consegue localizar um executável pelo nome entre as ferramentas instaladas do projeto. A resolução retorna a ferramenta, versão, caminho e argumentos registrados, e está disponível pela API `ANZUBA_TOOLS.resolveExecutable` e pelo comando `tools.executable.resolve`. Ferramentas não instaladas não são consideradas.
+
 ### Etapa 61/275 — Registro de executáveis de ferramentas
 
 O Tool Manager agora mantém os executáveis associados a cada ferramenta, com nome, caminho opcional e argumentos padrão. A IA pode registrar/atualizar executáveis com `tools.executables.set` e consultar o estado com `tools.executables.get`. Os dados permanecem persistentes e isolados por projeto, preparando a integração das ferramentas instaladas com o PATH e o runtime virtual.
