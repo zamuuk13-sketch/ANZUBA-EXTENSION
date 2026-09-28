@@ -160,6 +160,10 @@ Adicionado sistema de snapshots persistentes por projeto. O ANZUBA pode criar um
 
 Adicionada verificação de integridade do armazenamento virtual. O ANZUBA identifica estruturas inválidas de entradas, volumes e snapshots e pode reparar automaticamente estruturas corrompidas ou ausentes, preservando o isolamento do projeto. A IA pode usar `storage.integrity` com `repair: false` para diagnóstico ou `repair: true` para correção.
 
+### Etapa 50/275 — Backup e restauração do armazenamento
+
+Adicionado backup lógico do armazenamento virtual por projeto. A IA pode exportar o estado completo de armazenamento com `storage.export` e importar um backup validado com `storage.import`. A importação pode substituir o estado atual ou fazer merge de entradas, volumes e snapshots.
+
 ## Próximas etapas
 41–45: expansão do núcleo do ANZUBA OS
 46–52: armazenamento
