@@ -207,6 +207,60 @@
     return { projectId: pid, ok: true, scene: clone(scene), entity: clone(entity) };
   }
 
+  async function setEntityParent(sceneId, entityId, parentId, id) {
+    const pid = projectId(id);
+    const scenes = await getScenes(pid);
+    const scene = scenes.find(item => item.id === String(sceneId || "").trim());
+    if (!scene) return { projectId: pid, ok: false, reason: "scene-not-found" };
+
+    const childId = String(entityId || "").trim();
+    const nextParentId = String(parentId || "").trim() || null;
+    const entity = scene.entities.find(item => item.id === childId);
+    if (!entity) return { projectId: pid, ok: false, reason: "entity-not-found" };
+    if (nextParentId === childId) return { projectId: pid, ok: false, reason: "parent-self" };
+
+    if (nextParentId) {
+      const parent = scene.entities.find(item => item.id === nextParentId);
+      if (!parent) return { projectId: pid, ok: false, reason: "parent-not-found" };
+
+      let cursor = parent;
+      const visited = new Set();
+      while (cursor) {
+        if (visited.has(cursor.id)) return { projectId: pid, ok: false, reason: "hierarchy-cycle" };
+        visited.add(cursor.id);
+        if (cursor.id === childId) return { projectId: pid, ok: false, reason: "hierarchy-cycle" };
+        const ancestorId = cursor.components?.hierarchy?.parentId;
+        cursor = ancestorId ? scene.entities.find(item => item.id === ancestorId) : null;
+      }
+    }
+
+    entity.components = {
+      ...entity.components,
+      hierarchy: { ...(entity.components?.hierarchy || {}), parentId: nextParentId }
+    };
+    entity.updatedAt = new Date().toISOString();
+    scene.updatedAt = entity.updatedAt;
+    await window.ANZUBA_PROJECTS?.setData?.({ [SCENE_KEY]: scenes }, pid);
+    return { projectId: pid, ok: true, entity: clone(entity) };
+  }
+
+  async function getEntityChildren(sceneId, entityId, id) {
+    const pid = projectId(id);
+    const scene = await getScene(sceneId, pid);
+    if (!scene) return { projectId: pid, ok: false, reason: "scene-not-found" };
+    const targetId = String(entityId || "").trim();
+    if (!scene.entities.some(entity => entity.id === targetId)) {
+      return { projectId: pid, ok: false, reason: "entity-not-found" };
+    }
+    return {
+      projectId: pid,
+      ok: true,
+      children: scene.entities
+        .filter(entity => entity.components?.hierarchy?.parentId === targetId)
+        .map(clone)
+    };
+  }
+
   async function removeEntity(sceneId, entityId, id) {
     const pid = projectId(id);
     const scenes = await getScenes(pid);
@@ -256,7 +310,9 @@
     setEntityTransform,
     getEntityTransform,
     setEntityComponents,
-    getEntityComponents
+    getEntityComponents,
+    setEntityParent,
+    getEntityChildren
   };
 
   window.ANZUBA_AI_BRIDGE?.on("game.engine.configure", ({ options, id } = {}) =>
@@ -275,6 +331,11 @@
     getScene(sceneId, id));
   window.ANZUBA_AI_BRIDGE?.on("game.scenes.list", ({ id } = {}) =>
     listScenes(id));
+  window.ANZUBA_AI_BRIDGE?.on("game.entity.parent.set", ({ sceneId, entityId, parentId, id } = {}) =>
+    setEntityParent(sceneId, entityId, parentId, id));
+  window.ANZUBA_AI_BRIDGE?.on("game.entity.children.get", ({ sceneId, entityId, id } = {}) =>
+    getEntityChildren(sceneId, entityId, id));
+
   window.ANZUBA_AI_BRIDGE?.on("game.entity.components.set", ({ sceneId, entityId, components, id } = {}) =>
     setEntityComponents(sceneId, entityId, components || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("game.entity.components.get", ({ sceneId, entityId, id } = {}) =>
