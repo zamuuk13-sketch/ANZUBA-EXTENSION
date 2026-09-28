@@ -49,6 +49,10 @@
         if (typeof item === "string") return { name: String(item).trim(), path: null, args: [] };
         return { name: String(item?.name || "").trim(), path: item?.path ? String(item.path).trim() : null, args: Array.isArray(item?.args) ? item.args.map(String).slice(0, 20) : [] };
       }).filter(item => /^[A-Za-z0-9._-]{1,80}$/.test(item.name)).slice(0, 50) : [],
+      runtimeConfig: {
+        environment: tool.runtimeConfig?.environment && typeof tool.runtimeConfig.environment === "object" ? { ...tool.runtimeConfig.environment } : {},
+        workingDirectory: tool.runtimeConfig?.workingDirectory ? String(tool.runtimeConfig.workingDirectory).slice(0, 512) : null
+      },
       compatibility: {
         requires: Array.isArray(tool.compatibility?.requires) ? tool.compatibility.requires.map(item => ({
           toolId: String(item?.toolId || "").trim(),
@@ -99,6 +103,49 @@
     await saveAll(tools, pid);
     await syncExecutables(pid);
     return clone(normalized);
+  }
+
+  async function getLanguageRuntime(name, id) {
+    const pid = projectId(id);
+    const value = String(name || "").trim().toLowerCase();
+    if (!value) return null;
+    const runtimes = await listLanguageRuntimes(pid);
+    const runtime = runtimes.find(item => item.name.toLowerCase() === value);
+    return runtime ? clone(runtime) : null;
+  }
+
+  async function setLanguageRuntimeConfig(name, config = {}, id) {
+    const pid = projectId(id);
+    const runtime = await getLanguageRuntime(name, pid);
+    if (!runtime) return null;
+    if (!config || typeof config !== "object" || Array.isArray(config)) {
+      throw new Error("Configuração do runtime inválida.");
+    }
+
+    const tools = await getAll(pid);
+    const index = tools.findIndex(item => item.id === runtime.id);
+    if (index < 0) return null;
+
+    const environment = {};
+    if (config.environment && typeof config.environment === "object" && !Array.isArray(config.environment)) {
+      for (const [key, value] of Object.entries(config.environment).slice(0, 50)) {
+        if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) continue;
+        environment[key] = String(value).slice(0, 500);
+      }
+    }
+
+    const updated = normalize({
+      ...tools[index],
+      id: tools[index].id,
+      runtimeConfig: {
+        environment,
+        workingDirectory: config.workingDirectory ? String(config.workingDirectory).slice(0, 512) : null
+      }
+    });
+
+    tools[index] = updated;
+    await saveAll(tools, pid);
+    return clone(updated.runtimeConfig);
   }
 
   async function listLanguageRuntimes(id) {
@@ -915,6 +962,8 @@
     validateExecutable,
     registerLanguageRuntime,
     listLanguageRuntimes,
+    getLanguageRuntime,
+    setLanguageRuntimeConfig,
     syncExecutables,
     executeExecutable
   };
@@ -926,6 +975,8 @@
   window.ANZUBA_AI_BRIDGE?.on("tools.executable.validate", ({ name, id } = {}) => validateExecutable(name, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.runtime.register", ({ runtime, id } = {}) => registerLanguageRuntime(runtime, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.runtime.list", ({ id } = {}) => listLanguageRuntimes(id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.runtime.get", ({ name, id } = {}) => getLanguageRuntime(name, id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.runtime.config.set", ({ name, config, id } = {}) => setLanguageRuntimeConfig(name, config, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executable.run", ({ name, args, cwd, user, id } = {}) => executeExecutable(name, { args, cwd, user }, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.search", ({ query, id } = {}) => catalog(query || {}, id));
