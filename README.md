@@ -204,6 +204,10 @@ Adicionadas busca e recomendação local com filtros, pontuação de relevância
 
 Adicionado diagnóstico de integridade do catálogo, detectando IDs inválidos/duplicados, tipos ou estados inválidos, dependências ausentes e referências de compatibilidade quebradas. A IA pode consultar o diagnóstico com `tools.health`.
 
+### Etapa 61/275 — Registro de executáveis de ferramentas
+
+O Tool Manager agora mantém os executáveis associados a cada ferramenta, com nome, caminho opcional e argumentos padrão. A IA pode registrar/atualizar executáveis com `tools.executables.set` e consultar o estado com `tools.executables.get`. Os dados permanecem persistentes e isolados por projeto, preparando a integração das ferramentas instaladas com o PATH e o runtime virtual.
+
 ## Próximas etapas
 41–45: expansão do núcleo do ANZUBA OS
 46–52: armazenamento
