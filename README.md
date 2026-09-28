@@ -1,5 +1,9 @@
 # ANZUBA
 
+### Etapa 37/275 — Registro de runtimes de comandos virtuais
+
+O shell agora possui um registro interno de comandos executáveis. Módulos futuros podem registrar um runtime para um comando com `window.ANZUBA_SHELL.registerCommand()`; quando a IA chama esse comando, o shell cria um processo virtual, executa o handler dentro do ambiente do projeto, captura saída/código de retorno e encerra o processo. Também existem APIs para remover e listar comandos registrados. Executáveis encontrados no `PATH` continuam sendo diferenciados de comandos que já possuem runtime registrado.
+
 ### Etapa 36/275 — Descoberta de executáveis pelo PATH virtual
 
 O shell agora consulta o `PATH` virtual do projeto quando recebe um comando que não é um built-in. Ele procura o executável dentro dos diretórios virtuais configurados e, quando encontra um arquivo correspondente, identifica corretamente que existe um executável virtual, mas que o runtime de execução ainda será conectado nas próximas etapas. A busca fica disponível em `window.ANZUBA_SHELL.findExecutable`.
