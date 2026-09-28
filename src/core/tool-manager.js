@@ -634,6 +634,83 @@
     };
   }
 
+  async function getBuildProfiles(id) {
+    const pid = projectId(id);
+    const data = await window.ANZUBA_PROJECTS?.getData?.(pid);
+    if (!data || !Array.isArray(data.buildProfiles)) return [];
+    return clone(data.buildProfiles);
+  }
+
+  async function getBuildProfile(name, id) {
+    const profiles = await getBuildProfiles(id);
+    const key = String(name || "").trim().toLowerCase();
+    return profiles.find(profile => profile.name.toLowerCase() === key) || null;
+  }
+
+  async function setBuildProfile(name, config = {}, id) {
+    const pid = projectId(id);
+    const profileName = String(name || "").trim().slice(0, 64);
+    if (!profileName) throw new Error("Nome do perfil de build inválido.");
+
+    const profiles = await getBuildProfiles(pid);
+    const normalized = {
+      name: profileName,
+      compilerId: config.compilerId ? String(config.compilerId).trim() : null,
+      args: Array.isArray(config.args) ? config.args.slice(0, 50).map(value => String(value).slice(0, 200)) : [],
+      outputPath: config.outputPath ? String(config.outputPath).slice(0, 512) : null,
+      workingDirectory: config.workingDirectory ? String(config.workingDirectory).slice(0, 512) : "/workspace",
+      user: config.user ? String(config.user).slice(0, 64) : "ai",
+      environment: config.environment && typeof config.environment === "object" && !Array.isArray(config.environment)
+        ? Object.fromEntries(Object.entries(config.environment).slice(0, 50).map(([key, value]) => [String(key).slice(0, 64), String(value).slice(0, 512)]))
+        : {},
+      optimization: config.optimization ? String(config.optimization).slice(0, 32) : "default",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const index = profiles.findIndex(profile => profile.name.toLowerCase() === profileName.toLowerCase());
+    if (index >= 0) {
+      normalized.createdAt = profiles[index].createdAt || normalized.createdAt;
+      profiles[index] = normalized;
+    } else {
+      profiles.push(normalized);
+    }
+
+    await window.ANZUBA_PROJECTS.setData({ buildProfiles: profiles.slice(-50) }, pid);
+    return clone(normalized);
+  }
+
+  async function removeBuildProfile(name, id) {
+    const pid = projectId(id);
+    const key = String(name || "").trim().toLowerCase();
+    const profiles = await getBuildProfiles(pid);
+    const next = profiles.filter(profile => profile.name.toLowerCase() !== key);
+    if (next.length === profiles.length) return false;
+    await window.ANZUBA_PROJECTS.setData({ buildProfiles: next }, pid);
+    return true;
+  }
+
+  async function validateBuildProfile(name, id) {
+    const pid = projectId(id);
+    const profile = await getBuildProfile(name, pid);
+    if (!profile) return { projectId: pid, ok: false, profile: null, issues: ["profile-not-found"] };
+
+    const issues = [];
+    if (profile.compilerId) {
+      const compiler = await get(profile.compilerId, pid);
+      if (!compiler) issues.push("compiler-not-found");
+      else if (compiler.status !== "installed") issues.push("compiler-not-installed");
+      else {
+        const compatibility = await validateCompatibility(profile.compilerId, pid);
+        if (!compatibility.ok) issues.push("compiler-incompatible");
+      }
+    }
+    if (!profile.outputPath || !String(profile.outputPath).startsWith("/")) issues.push("invalid-output-path");
+    if (!profile.workingDirectory || !String(profile.workingDirectory).startsWith("/")) issues.push("invalid-working-directory");
+
+    return { projectId: pid, ok: issues.length === 0, profile: clone(profile), issues };
+  }
+
   async function health(id) {
     const pid = projectId(id);
     const tools = await getAll(pid);
@@ -1464,6 +1541,11 @@
     listBuildArtifacts,
     removeBuildArtifact,
     validateBuildArtifact,
+    getBuildProfiles,
+    getBuildProfile,
+    setBuildProfile,
+    removeBuildProfile,
+    validateBuildProfile,
     syncExecutables,
     executeExecutable
   };
@@ -1494,6 +1576,11 @@
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifacts.list", ({ options, id } = {}) => listBuildArtifacts(options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifact.remove", ({ artifactId, id } = {}) => removeBuildArtifact(artifactId, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifact.validate", ({ artifactId, id } = {}) => validateBuildArtifact(artifactId, id));
+  window.ANZUBA_AI_BRIDGE?.on("build.profile.get", ({ name, id } = {}) => getBuildProfile(name, id));
+  window.ANZUBA_AI_BRIDGE?.on("build.profiles.list", ({ id } = {}) => getBuildProfiles(id));
+  window.ANZUBA_AI_BRIDGE?.on("build.profile.set", ({ name, config, id } = {}) => setBuildProfile(name, config || {}, id));
+  window.ANZUBA_AI_BRIDGE?.on("build.profile.remove", ({ name, id } = {}) => removeBuildProfile(name, id));
+  window.ANZUBA_AI_BRIDGE?.on("build.profile.validate", ({ name, id } = {}) => validateBuildProfile(name, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executable.run", ({ name, args, cwd, user, id } = {}) => executeExecutable(name, { args, cwd, user }, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.search", ({ query, id } = {}) => catalog(query || {}, id));
