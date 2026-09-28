@@ -482,6 +482,80 @@
     };
   }
 
+  async function exportStorage(id) {
+    const pid = projectId(id);
+    const state = await getState(pid);
+    if (!state) return null;
+
+    return {
+      format: "anzuba-storage",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      projectId: pid,
+      storage: clone(state)
+    };
+  }
+
+  async function importStorage(payload, options = {}, id) {
+    const pid = projectId(id);
+    const current = await getState(pid);
+    if (!current) return null;
+    if (!payload || payload.format !== "anzuba-storage" || Number(payload.version) !== 1) {
+      throw new Error("Backup de armazenamento inválido.");
+    }
+
+    const incoming = payload.storage;
+    if (!incoming || typeof incoming !== "object" || Array.isArray(incoming)) {
+      throw new Error("Dados de armazenamento inválidos.");
+    }
+
+    const next = {
+      ...clone(DEFAULT_STORAGE),
+      ...clone(incoming),
+      quotaMB: Math.max(1, Number(incoming.quotaMB || DEFAULT_STORAGE.quotaMB)),
+      entries: incoming.entries && typeof incoming.entries === "object" && !Array.isArray(incoming.entries)
+        ? clone(incoming.entries)
+        : {},
+      volumes: incoming.volumes && typeof incoming.volumes === "object" && !Array.isArray(incoming.volumes)
+        ? clone(incoming.volumes)
+        : clone(DEFAULT_STORAGE.volumes),
+      snapshots: incoming.snapshots && typeof incoming.snapshots === "object" && !Array.isArray(incoming.snapshots)
+        ? clone(incoming.snapshots)
+        : {}
+    };
+
+    if (!next.volumes.root || typeof next.volumes.root !== "object") {
+      next.volumes.root = clone(DEFAULT_STORAGE.volumes.root);
+    }
+
+    const replace = options.replace !== false;
+    if (!replace) {
+      next.entries = {
+        ...current.entries,
+        ...next.entries
+      };
+      next.volumes = {
+        ...current.volumes,
+        ...next.volumes
+      };
+      next.snapshots = {
+        ...current.snapshots,
+        ...next.snapshots
+      };
+    }
+
+    await saveState(next, pid);
+
+    window.dispatchEvent(new CustomEvent("anzuba:storage-backup-updated", {
+      detail: {
+        projectId: pid,
+        action: replace ? "imported" : "merged"
+      }
+    }));
+
+    return status(pid);
+  }
+
   async function status(id) {
     const state = await getState(id);
     if (!state) return null;
@@ -524,7 +598,9 @@
     createSnapshot,
     restoreSnapshot,
     removeSnapshot,
-    integrity
+    integrity,
+    exportStorage,
+    importStorage
   };
 
   window.ANZUBA_AI_BRIDGE?.on("storage.get", ({ key, id } = {}) => get(key, id));
@@ -547,6 +623,8 @@
   window.ANZUBA_AI_BRIDGE?.on("storage.snapshot.restore", ({ name, id } = {}) => restoreSnapshot(name, id));
   window.ANZUBA_AI_BRIDGE?.on("storage.snapshot.remove", ({ name, id } = {}) => removeSnapshot(name, id));
   window.ANZUBA_AI_BRIDGE?.on("storage.integrity", ({ id, repair = false } = {}) => integrity(id, repair));
+  window.ANZUBA_AI_BRIDGE?.on("storage.export", ({ id } = {}) => exportStorage(id));
+  window.ANZUBA_AI_BRIDGE?.on("storage.import", ({ payload, options, id } = {}) => importStorage(payload, options, id));
 
   setTimeout(() => {
     const active = window.ANZUBA_PROJECTS?.getActive?.();
