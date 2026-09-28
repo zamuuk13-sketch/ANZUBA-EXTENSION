@@ -197,7 +197,16 @@
       }
     }
 
-    if (changed) await saveState(state, id);
+    if (changed) {
+      await saveState(state, id);
+      for (const process of state.processes) {
+        if (process.state === "terminated" && process.endedAt === now) {
+          window.dispatchEvent(new CustomEvent("anzuba:process-terminated", {
+            detail: { projectId: id, process: clone(process) }
+          }));
+        }
+      }
+    }
     return changed;
   }
 
