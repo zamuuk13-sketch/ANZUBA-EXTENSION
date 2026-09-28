@@ -851,6 +851,101 @@
     return result;
   }
 
+  async function getBuildTargets(id) {
+    const pid = projectId(id);
+    const data = await window.ANZUBA_PROJECTS?.getData?.(pid);
+    if (!data || !Array.isArray(data.buildTargets)) return [];
+    return clone(data.buildTargets);
+  }
+
+  async function getBuildTarget(name, id) {
+    const targets = await getBuildTargets(id);
+    const key = String(name || "").trim().toLowerCase();
+    return targets.find(target => target.name.toLowerCase() === key) || null;
+  }
+
+  async function setBuildTarget(name, config = {}, id) {
+    const pid = projectId(id);
+    const targetName = String(name || "").trim().slice(0, 64);
+    if (!targetName) throw new Error("Nome do alvo de build inválido.");
+    if (!config || typeof config !== "object" || Array.isArray(config)) {
+      throw new Error("Configuração do alvo de build inválida.");
+    }
+
+    const targets = await getBuildTargets(pid);
+    const existing = targets.find(target => target.name.toLowerCase() === targetName.toLowerCase());
+    const now = new Date().toISOString();
+    const normalized = {
+      id: existing?.id || `target_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      name: targetName,
+      platform: String(config.platform || existing?.platform || "generic").trim().slice(0, 64),
+      architecture: String(config.architecture || existing?.architecture || "wasm32").trim().slice(0, 64),
+      format: String(config.format || existing?.format || "virtual").trim().slice(0, 32),
+      profile: config.profile !== undefined ? (config.profile ? String(config.profile).slice(0, 64) : null) : (existing?.profile || null),
+      compilerId: config.compilerId !== undefined ? (config.compilerId ? String(config.compilerId).trim() : null) : (existing?.compilerId || null),
+      sourcePath: config.sourcePath !== undefined ? (config.sourcePath ? String(config.sourcePath).slice(0, 512) : null) : (existing?.sourcePath || null),
+      outputPath: config.outputPath !== undefined ? (config.outputPath ? String(config.outputPath).slice(0, 512) : null) : (existing?.outputPath || null),
+      args: Array.isArray(config.args) ? config.args.slice(0, 50).map(value => String(value).slice(0, 200)) : (existing?.args || []),
+      environment: config.environment && typeof config.environment === "object" && !Array.isArray(config.environment)
+        ? Object.fromEntries(Object.entries(config.environment).slice(0, 50).map(([key, value]) => [String(key).slice(0, 64), String(value).slice(0, 512)]))
+        : (existing?.environment || {}),
+      enabled: config.enabled !== undefined ? Boolean(config.enabled) : (existing?.enabled !== false),
+      createdAt: existing?.createdAt || now,
+      updatedAt: now
+    };
+
+    const index = targets.findIndex(target => target.id === normalized.id);
+    if (index >= 0) targets[index] = normalized;
+    else targets.push(normalized);
+
+    await window.ANZUBA_PROJECTS.setData({ buildTargets: targets.slice(-50) }, pid);
+    return clone(normalized);
+  }
+
+  async function removeBuildTarget(name, id) {
+    const pid = projectId(id);
+    const key = String(name || "").trim().toLowerCase();
+    const targets = await getBuildTargets(pid);
+    const next = targets.filter(target => target.name.toLowerCase() !== key);
+    if (next.length === targets.length) return false;
+    await window.ANZUBA_PROJECTS.setData({ buildTargets: next }, pid);
+    return true;
+  }
+
+  async function validateBuildTarget(name, id) {
+    const pid = projectId(id);
+    const target = await getBuildTarget(name, pid);
+    if (!target) {
+      return { projectId: pid, ok: false, target: null, issues: ["target-not-found"] };
+    }
+
+    const issues = [];
+    if (!target.platform) issues.push("platform-missing");
+    if (!target.architecture) issues.push("architecture-missing");
+    if (!target.format) issues.push("format-missing");
+    if (target.compilerId) {
+      const compiler = await get(target.compilerId, pid);
+      if (!compiler) issues.push("compiler-not-found");
+      else {
+        const validation = await validateCompiler(target.compilerId, pid);
+        if (!validation.ok) issues.push("compiler-invalid");
+      }
+    }
+    if (target.profile) {
+      const profile = await getBuildProfile(target.profile, pid);
+      if (!profile) issues.push("profile-not-found");
+    }
+    if (target.sourcePath && !String(target.sourcePath).startsWith("/")) issues.push("invalid-source-path");
+    if (target.outputPath && !String(target.outputPath).startsWith("/")) issues.push("invalid-output-path");
+
+    return {
+      projectId: pid,
+      ok: issues.length === 0,
+      target: clone(target),
+      issues
+    };
+  }
+
   async function health(id) {
     const pid = projectId(id);
     const tools = await getAll(pid);
@@ -1681,6 +1776,11 @@
     listBuildArtifacts,
     removeBuildArtifact,
     validateBuildArtifact,
+    getBuildTargets,
+    getBuildTarget,
+    setBuildTarget,
+    removeBuildTarget,
+    validateBuildTarget,
     getBuildProfiles,
     getBuildProfile,
     setBuildProfile,
@@ -1720,6 +1820,11 @@
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifacts.list", ({ options, id } = {}) => listBuildArtifacts(options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifact.remove", ({ artifactId, id } = {}) => removeBuildArtifact(artifactId, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifact.validate", ({ artifactId, id } = {}) => validateBuildArtifact(artifactId, id));
+  window.ANZUBA_AI_BRIDGE?.on("build.target.get", ({ name, id } = {}) => getBuildTarget(name, id));
+  window.ANZUBA_AI_BRIDGE?.on("build.targets.list", ({ id } = {}) => getBuildTargets(id));
+  window.ANZUBA_AI_BRIDGE?.on("build.target.set", ({ name, config, id } = {}) => setBuildTarget(name, config || {}, id));
+  window.ANZUBA_AI_BRIDGE?.on("build.target.remove", ({ name, id } = {}) => removeBuildTarget(name, id));
+  window.ANZUBA_AI_BRIDGE?.on("build.target.validate", ({ name, id } = {}) => validateBuildTarget(name, id));
   window.ANZUBA_AI_BRIDGE?.on("build.profile.get", ({ name, id } = {}) => getBuildProfile(name, id));
   window.ANZUBA_AI_BRIDGE?.on("build.profiles.list", ({ id } = {}) => getBuildProfiles(id));
   window.ANZUBA_AI_BRIDGE?.on("build.profile.set", ({ name, config, id } = {}) => setBuildProfile(name, config || {}, id));
