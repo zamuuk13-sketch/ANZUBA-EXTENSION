@@ -45,10 +45,6 @@ O ANZUBA agora possui um registro de processos virtual por projeto. Cada process
 
 Quando o ANZUBA OS inicia, o gerenciador cria o processo virtual `anzuba-init` como PID 1. Quando o OS é desligado, os processos em execução são finalizados de forma controlada. As operações ficam disponíveis em `window.ANZUBA_PROCESSES` e pelos comandos `process.list`, `process.get`, `process.spawn`, `process.stop` e `process.terminate`.
 
-### Etapa 31/275 — Núcleo do ANZUBA OS
-
-O ANZUBA agora possui o primeiro núcleo persistente do sistema operacional virtual. Cada projeto recebe uma instância própria do **ANZUBA OS**, com identidade do sistema, kernel virtual, arquitetura, CPU, memória, disco, usuário `ai`, raiz de arquivos e estado de execução. O núcleo permite inicializar, consultar e desligar o sistema através de `window.ANZUBA_OS` e dos comandos `os.boot`, `os.status` e `os.shutdown`. A instância é isolada por projeto e persistida junto aos dados do ambiente.
-
 # ANZUBA
 
 ### Etapa 31/275 — Núcleo do ANZUBA OS
