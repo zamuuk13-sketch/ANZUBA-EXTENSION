@@ -1295,6 +1295,15 @@
       }
     }
 
+    for (const profile of profiles) {
+      if (!profile || !String(profile.name || "").trim()) {
+        issues.push("profile-name-missing");
+        continue;
+      }
+      const validation = await validateBuildProfile(profile.name, pid);
+      if (!validation.ok) issues.push("profile-invalid");
+    }
+
     for (const manifest of manifests) {
       if (!manifest || String(manifest.projectId || "") !== pid) {
         issues.push("manifest-project-mismatch");
@@ -1325,6 +1334,7 @@
       const validation = await validateBuildArtifact(artifact.id, pid);
       if (!validation.artifact) issues.push("artifact-missing");
       if (!validation.job) issues.push("artifact-job-missing");
+      if (validation.issues?.length) issues.push(...validation.issues.map(issue => "artifact:" + issue));
     }
 
     const uniqueIssues = [...new Set(issues)];
