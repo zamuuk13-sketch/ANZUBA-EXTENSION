@@ -913,6 +913,8 @@
     getExecutables,
     resolveExecutable,
     validateExecutable,
+    registerLanguageRuntime,
+    listLanguageRuntimes,
     syncExecutables,
     executeExecutable
   };
@@ -922,6 +924,8 @@
   window.ANZUBA_AI_BRIDGE?.on("tools.executable.resolve", ({ name, id } = {}) => resolveExecutable(name, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executables.sync", ({ id } = {}) => syncExecutables(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executable.validate", ({ name, id } = {}) => validateExecutable(name, id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.runtime.register", ({ runtime, id } = {}) => registerLanguageRuntime(runtime, id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.runtime.list", ({ id } = {}) => listLanguageRuntimes(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executable.run", ({ name, args, cwd, user, id } = {}) => executeExecutable(name, { args, cwd, user }, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.search", ({ query, id } = {}) => catalog(query || {}, id));
