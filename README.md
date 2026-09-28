@@ -368,3 +368,6 @@ Adicionada a atualização dos jobs de build a partir do processo virtual do ANZ
 ### Etapa 90/275 — Diagnóstico e auditoria do Build System
 
 Adicionado o diagnóstico integrado do Build System através de `ANZUBA_TOOLS.getBuildSystemDiagnostics` e `build.system.diagnostics`. A etapa verifica alvos, perfis, manifestos, jobs, processos associados e artefatos, preservando o isolamento por projeto. Após a implementação, foi realizada a varredura de bugs e a auditoria do bloco 81–90. Foram corrigidos o repasse do ambiente de execução dos manifestos para o processo virtual e a cobertura dos diagnósticos de perfis e problemas estruturais dos artefatos.
+### Etapa 91/275 — Núcleo do AI Programmer
+
+Adicionado o núcleo inicial do AI Programmer. A IA agora pode transformar uma solicitação em um plano persistente de desenvolvimento por projeto, identificando o tipo de tarefa, linguagem e alvo inicial, criando etapas de análise, preparação, implementação, build, teste, correção e finalização. O plano pode ser consultado, listado e atualizado pela API `ANZUBA_AI_PROGRAMMER` e pelos comandos Bridge `ai.program.plan.create`, `ai.program.plan.get`, `ai.program.plan.update` e `ai.program.plans.list`.
