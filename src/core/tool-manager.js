@@ -51,6 +51,76 @@
     };
   }
 
+  async function resolveDependencies(toolId, id) {
+    const pid = projectId(id);
+    const tools = await getAll(pid);
+    const root = tools.find(tool => tool.id === toolId);
+    if (!root) return null;
+
+    const byId = new Map(tools.map(tool => [tool.id, tool]));
+    const visiting = new Set();
+    const visited = new Set();
+    const order = [];
+    const missing = [];
+    const cycles = [];
+
+    function visit(currentId, chain = []) {
+      if (visited.has(currentId)) return;
+      if (visiting.has(currentId)) {
+        cycles.push([...chain, currentId]);
+        return;
+      }
+
+      const current = byId.get(currentId);
+      if (!current) {
+        missing.push(currentId);
+        return;
+      }
+
+      visiting.add(currentId);
+      for (const dependencyId of Array.isArray(current.dependencies) ? current.dependencies : []) {
+        visit(dependencyId, [...chain, currentId]);
+      }
+      visiting.delete(currentId);
+      visited.add(currentId);
+      order.push(currentId);
+    }
+
+    visit(toolId);
+
+    const uniqueMissing = [...new Set(missing)];
+    const uniqueCycles = cycles.map(chain => [...new Set(chain)]).filter(chain => chain.length > 1 || chain[0] === toolId);
+    return {
+      projectId: pid,
+      toolId,
+      ok: uniqueMissing.length === 0 && uniqueCycles.length === 0,
+      order,
+      missing: uniqueMissing,
+      cycles: uniqueCycles,
+      tools: order.map(item => byId.get(item)).filter(Boolean).map(clone)
+    };
+  }
+
+  async function installWithDependencies(id, toolId) {
+    const pid = projectId(id);
+    const resolution = await resolveDependencies(toolId, pid);
+    if (!resolution) return null;
+    if (!resolution.ok) throw new Error("Não foi possível resolver as dependências da ferramenta.");
+
+    const installed = [];
+    for (const dependencyId of resolution.order) {
+      const result = await install(pid, dependencyId);
+      installed.push(result);
+    }
+
+    return {
+      projectId: pid,
+      toolId,
+      resolution,
+      installed
+    };
+  }
+
   async function setDependencies(toolId, dependencies = [], id) {
     const pid = projectId(id);
     const tools = await getAll(pid);
@@ -250,6 +320,8 @@
     uninstall
   };
 
+  window.ANZUBA_AI_BRIDGE?.on("tools.dependencies.resolve", ({ toolId, id } = {}) => resolveDependencies(toolId, id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.install.withDependencies", ({ toolId, id } = {}) => installWithDependencies(id, toolId));
   window.ANZUBA_AI_BRIDGE?.on("tools.dependencies.set", ({ toolId, dependencies, id } = {}) => setDependencies(toolId, dependencies || [], id));
   window.ANZUBA_AI_BRIDGE?.on("tools.dependencies.get", ({ toolId, id } = {}) => getDependencies(toolId, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.dependents.get", ({ toolId, id } = {}) => getDependents(toolId, id));
