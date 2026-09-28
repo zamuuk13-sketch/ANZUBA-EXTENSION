@@ -983,6 +983,69 @@
     };
   }
 
+  async function executeBuildManifest(manifest = {}, id) {
+    const pid = projectId(id);
+    const validation = await validateBuildManifest(manifest, pid);
+    if (!validation.ok) {
+      return { projectId: pid, ok: false, status: "failed", reason: "manifest-invalid", validation, job: null, artifact: null };
+    }
+
+    const compilerId = String(manifest.compiler?.id || "").trim();
+    const sourcePath = String(manifest.source?.path || "").trim();
+    if (!compilerId || !sourcePath) {
+      return { projectId: pid, ok: false, status: "failed", reason: !compilerId ? "compiler-missing" : "source-missing", validation, job: null, artifact: null };
+    }
+
+    const compilerValidation = await validateCompiler(compilerId, pid);
+    if (!compilerValidation.ok) {
+      return { projectId: pid, ok: false, status: "failed", reason: "compiler-invalid", validation, compilerValidation, job: null, artifact: null };
+    }
+
+    const sourceValidation = await validateBuildSource(sourcePath, compilerId, pid);
+    if (!sourceValidation.ok) {
+      return { projectId: pid, ok: false, status: "failed", reason: "source-invalid", validation, compilerValidation, sourceValidation, job: null, artifact: null };
+    }
+
+    const execution = manifest.execution && typeof manifest.execution === "object" ? manifest.execution : {};
+    const output = manifest.source?.output ? String(manifest.source.output).trim() : null;
+    const args = Array.isArray(execution.args) ? execution.args.map(String).slice(0, 100) : [];
+    const environment = execution.environment && typeof execution.environment === "object" && !Array.isArray(execution.environment)
+      ? Object.fromEntries(Object.entries(execution.environment).slice(0, 50).map(([key, value]) => [String(key).slice(0, 64), String(value).slice(0, 512)]))
+      : {};
+
+    const job = await createCompileJob(compilerId, sourcePath, {
+      output,
+      cwd: execution.cwd ? String(execution.cwd) : "/workspace",
+      user: execution.user ? String(execution.user) : "ai",
+      environment,
+      args
+    }, pid);
+
+    const result = {
+      projectId: pid,
+      ok: job.status === "queued",
+      status: job.status,
+      manifest: clone(manifest),
+      validation,
+      compilerValidation,
+      sourceValidation,
+      job,
+      artifact: null
+    };
+
+    if (!result.ok) return result;
+
+    if (output) {
+      result.artifact = await registerBuildArtifact(job.id, {
+        path: output,
+        type: "build",
+        status: "missing"
+      }, pid);
+    }
+
+    return result;
+  }
+
   async function registerBuildManifest(manifest = {}, id) {
     const pid = projectId(id);
     if (!pid || !manifest || typeof manifest !== "object" || Array.isArray(manifest)) return null;
@@ -2072,6 +2135,7 @@
     validateBuildPlan,
     createBuildManifest,
     validateBuildManifest,
+    executeBuildManifest,
     registerBuildManifest,
     getBuildManifest,
     listBuildManifests,
@@ -2120,6 +2184,7 @@
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifact.remove", ({ artifactId, id } = {}) => removeBuildArtifact(artifactId, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.artifact.validate", ({ artifactId, id } = {}) => validateBuildArtifact(artifactId, id));
   window.ANZUBA_AI_BRIDGE?.on("build.manifest.validate", ({ manifest, id } = {}) => validateBuildManifest(manifest || {}, id));
+  window.ANZUBA_AI_BRIDGE?.on("build.manifest.execute", ({ manifest, id } = {}) => executeBuildManifest(manifest || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("build.manifest.register", ({ manifest, id } = {}) => registerBuildManifest(manifest || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("build.manifest.get", ({ manifestId, id } = {}) => getBuildManifest(manifestId, id));
   window.ANZUBA_AI_BRIDGE?.on("build.manifests.list", ({ id } = {}) => listBuildManifests(id));
