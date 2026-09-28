@@ -282,6 +282,31 @@
     return { projectId: pid, ok: true, scene: clone(scene), entity: clone(entity), index: nextIndex };
   }
 
+  async function setEntityEnabled(sceneId, entityId, enabled = true, id) {
+    const pid = projectId(id);
+    const scenes = await getScenes(pid);
+    const scene = scenes.find(item => item.id === String(sceneId || "").trim());
+    if (!scene) return { projectId: pid, ok: false, reason: "scene-not-found" };
+    const entity = scene.entities.find(item => item.id === String(entityId || "").trim());
+    if (!entity) return { projectId: pid, ok: false, reason: "entity-not-found" };
+
+    entity.enabled = Boolean(enabled);
+    entity.updatedAt = new Date().toISOString();
+    scene.updatedAt = entity.updatedAt;
+    await window.ANZUBA_PROJECTS?.setData?.({ [SCENE_KEY]: scenes }, pid);
+    return { projectId: pid, ok: true, entity: clone(entity) };
+  }
+
+  async function getEntityEnabled(sceneId, entityId, id) {
+    const pid = projectId(id);
+    const scenes = await getScenes(pid);
+    const scene = scenes.find(item => item.id === String(sceneId || "").trim());
+    if (!scene) return { projectId: pid, ok: false, reason: "scene-not-found" };
+    const entity = scene.entities.find(item => item.id === String(entityId || "").trim());
+    if (!entity) return { projectId: pid, ok: false, reason: "entity-not-found" };
+    return { projectId: pid, ok: true, enabled: entity.enabled !== false };
+  }
+
   async function duplicateEntity(sceneId, entityId, options = {}, id) {
     const pid = projectId(id);
     const scenes = await getScenes(pid);
@@ -367,7 +392,9 @@
     setEntityParent,
     getEntityChildren,
     reorderEntity,
-    duplicateEntity
+    duplicateEntity,
+    setEntityEnabled,
+    getEntityEnabled
   };
 
   window.ANZUBA_AI_BRIDGE?.on("game.engine.configure", ({ options, id } = {}) =>
@@ -386,6 +413,12 @@
     getScene(sceneId, id));
   window.ANZUBA_AI_BRIDGE?.on("game.scenes.list", ({ id } = {}) =>
     listScenes(id));
+  window.ANZUBA_AI_BRIDGE?.on("game.entity.enabled.set", ({ sceneId, entityId, enabled, id } = {}) =>
+    setEntityEnabled(sceneId, entityId, enabled, id));
+
+  window.ANZUBA_AI_BRIDGE?.on("game.entity.enabled.get", ({ sceneId, entityId, id } = {}) =>
+    getEntityEnabled(sceneId, entityId, id));
+
   window.ANZUBA_AI_BRIDGE?.on("game.entity.duplicate", ({ sceneId, entityId, options, id } = {}) =>
     duplicateEntity(sceneId, entityId, options || {}, id));
 
