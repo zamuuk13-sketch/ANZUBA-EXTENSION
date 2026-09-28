@@ -45,13 +45,13 @@
     }])
   );
 
-  function access(item, username, requested) {
+  async function access(item, username, requested, projectId) {
     if (!item || !window.ANZUBA_USERS?.checkAccess) return true;
     return window.ANZUBA_USERS.checkAccess({
       owner: item.owner || "root",
       group: item.group || "root",
       mode: item.mode || "755"
-    }, username || "ai", requested);
+    }, username || "ai", requested, projectId);
   }
 
   async function getFs(projectId) {
