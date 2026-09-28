@@ -447,7 +447,8 @@
       command: compiler.executables?.[0]?.name || compiler.name,
       args,
       user,
-      cwd
+      cwd,
+      environment: options.environment && typeof options.environment === "object" && !Array.isArray(options.environment) ? options.environment : {}
     }, pid);
 
     return {
