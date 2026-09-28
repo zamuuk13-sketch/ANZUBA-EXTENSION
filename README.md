@@ -216,6 +216,14 @@ O Tool Manager consegue localizar um executável pelo nome entre as ferramentas 
 
 Os executáveis de ferramentas instaladas agora são sincronizados com o filesystem e o PATH virtual do projeto. O ANZUBA prepara `/tools/bin`, cria entradas executáveis virtuais com permissões de execução, adiciona esse diretório ao PATH e remove automaticamente os stubs pertencentes a uma ferramenta quando ela é desinstalada. A sincronização manual também está disponível com `ANZUBA_TOOLS.syncExecutables` e `tools.executables.sync`.
 
+### Etapa 64/275 — Preparação de execução de ferramentas
+
+O Tool Manager mantém os executáveis instalados conectados ao filesystem e ao PATH virtual, permitindo que a camada de execução localize a ferramenta correta antes de iniciar um processo.
+
+### Etapa 65/275 — Execução virtual de ferramentas
+
+Adicionada a execução virtual de executáveis instalados. A IA pode usar `ANZUBA_TOOLS.executeExecutable` ou `tools.executable.run` para resolver a ferramenta, validar instalação e compatibilidade e criar um processo virtual com argumentos, usuário e diretório de trabalho. A execução não finge executar binários do computador hospedeiro: o processo passa pelo runtime virtual do ANZUBA OS.
+
 ## Próximas etapas
 41–45: expansão do núcleo do ANZUBA OS
 46–52: armazenamento
