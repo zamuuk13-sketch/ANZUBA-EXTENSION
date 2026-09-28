@@ -166,36 +166,43 @@ Adicionado backup lógico do armazenamento virtual por projeto. A IA pode export
 
 ### Etapa 51/275 — Cache virtual
 
-Adicionado cache virtual persistente e isolado por projeto, separado do armazenamento principal. O cache suporta chaves, quota própria, TTL opcional, estatísticas de acesso, listagem, limpeza e expurgo de entradas expiradas. A IA pode usar `cache.get`, `cache.set`, `cache.remove`, `cache.list`, `cache.clear`, `cache.purge`, `cache.quota.set` e `cache.status`.
+Adicionado cache virtual persistente e isolado por projeto, separado do armazenamento principal. O cache suporta chaves, quota própria, TTL opcional, estatísticas de acesso, listagem, limpeza e expurgo de entradas expiradas.
 
 ### Etapa 52/275 — Reconciliação do armazenamento
 
-Adicionada manutenção e reconciliação do armazenamento virtual. O ANZUBA recalcula os tamanhos reais das entradas a partir dos valores armazenados, identifica metadados de tamanho incorretos e detecta armazenamento acima da quota. A IA pode diagnosticar com `storage.reconcile` e, usando `repair: true`, corrigir os tamanhos inconsistentes sem misturar dados entre projetos.
+Adicionada manutenção e reconciliação do armazenamento virtual. O ANZUBA recalcula tamanhos, identifica inconsistências e pode reparar metadados sem misturar dados entre projetos.
 
 ### Etapa 53/275 — Gerenciador de ferramentas
 
-Criado o núcleo do gerenciador de ferramentas virtual por projeto. Ele mantém catálogo, tipo, versão, origem, caminho, dependências e estado das ferramentas, com instalação e remoção controladas pelo ANZUBA. A IA pode usar `tools.list`, `tools.get`, `tools.register`, `tools.install` e `tools.uninstall`.
+Criado o núcleo do Tool Manager virtual por projeto, com catálogo, tipos, versões, fontes, caminhos, dependências, estados, instalação e remoção.
 
 ### Etapa 54/275 — Metadados e fontes de ferramentas
 
-O gerenciador de ferramentas agora registra tipo de fonte, página oficial, licença e versões disponíveis. A IA pode atualizar metadados com `tools.metadata.update` e consultar as fontes com `tools.sources.get`, mantendo essas informações isoladas por projeto.
+Adicionados tipo de fonte, página oficial, licença e versões disponíveis, com atualização e consulta pela AI Bridge.
 
 ### Etapa 55/275 — Gerenciamento de versões
 
-O Tool Manager agora mantém múltiplas versões por ferramenta, permite adicionar/remover versões do catálogo e selecionar a versão ativa. A IA pode consultar e alterar versões com `tools.versions.get`, `tools.version.add`, `tools.version.remove` e `tools.version.select`.
+O Tool Manager mantém múltiplas versões, permite adicionar/remover versões do catálogo e selecionar a versão ativa.
 
 ### Etapa 56/275 — Dependências de ferramentas
 
-O Tool Manager agora gerencia dependências entre ferramentas. A IA pode definir dependências, consultar o que uma ferramenta precisa e descobrir quais outras ferramentas dependem dela, com validação de referências e prevenção de dependência da própria ferramenta.
-
-
-### Etapa 58/275 — Compatibilidade entre ferramentas e versões
-
-O Tool Manager agora mantém regras de compatibilidade, compara versões e valida requisitos e conflitos entre ferramentas instaladas, com suporte a faixas simples como `>=1.2.0`, `<2.0.0` e versões exatas.
+Adicionado gerenciamento de dependências, dependentes e validação de referências.
 
 ### Etapa 57/275 — Resolução automática de dependências
 
-O Tool Manager agora resolve a árvore de dependências antes da instalação. Ele produz uma ordem de instalação, detecta dependências ausentes e ciclos e oferece instalação encadeada pelo comando `tools.install.withDependencies`.
+Adicionada resolução recursiva da árvore de dependências, detecção de referências ausentes e ciclos, ordem de instalação e instalação encadeada.
+
+### Etapa 58/275 — Compatibilidade entre ferramentas e versões
+
+Adicionadas regras de compatibilidade, comparação de versões, requisitos por faixa e conflitos entre ferramentas.
+
+### Etapa 59/275 — Catálogo inteligente de ferramentas
+
+Adicionadas busca e recomendação local com filtros, pontuação de relevância, prioridade por nome e limite controlado de resultados.
+
+### Etapa 60/275 — Diagnóstico do Tool Manager
+
+Adicionado diagnóstico de integridade do catálogo, detectando IDs inválidos/duplicados, tipos ou estados inválidos, dependências ausentes e referências de compatibilidade quebradas. A IA pode consultar o diagnóstico com `tools.health`.
 
 ## Próximas etapas
 41–45: expansão do núcleo do ANZUBA OS
