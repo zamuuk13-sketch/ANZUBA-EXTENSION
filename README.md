@@ -292,6 +292,11 @@ A detecção de linguagem foi ampliada além da extensão do arquivo. O ANZUBA a
 
 ### Etapa 77/275 — Execução por perfil de build
 
+
+### Etapa 78/275 — Validação de arquivos de build
+
+Adicionada a validação dos arquivos de origem antes de um build. O ANZUBA verifica caminho, existência no filesystem virtual, tipo de arquivo, compilador associado, validade do compilador e compatibilidade da extensão com as extensões de entrada declaradas pelo compilador. API: `ANZUBA_TOOLS.validateBuildSource`. Bridge: `build.source.validate`.
+
 Adicionada a execução virtual de builds usando perfis persistentes. A IA pode selecionar um perfil, validar sua configuração, combinar argumentos/opções específicas e criar automaticamente um job de compilação associado ao compilador configurado. API: `ANZUBA_TOOLS.buildWithProfile`. Bridge: `build.profile.run`.
 
 Adicionados perfis de build persistentes por projeto. Cada perfil pode definir compilador, argumentos, saída, diretório de trabalho, usuário, variáveis de ambiente e nível de otimização. O ANZUBA também valida o perfil e o compilador associado antes do uso. APIs: `ANZUBA_TOOLS.getBuildProfiles`, `getBuildProfile`, `setBuildProfile`, `removeBuildProfile` e `validateBuildProfile`. Bridge: `build.profiles.list`, `build.profile.get`, `build.profile.set`, `build.profile.remove` e `build.profile.validate`.
