@@ -28,6 +28,63 @@
     return { kind: game ? "game" : web ? "web-app" : "software", language, target };
   }
 
+
+  function analyzeRequirements(prompt, task) {
+    const request = String(prompt || "").trim().slice(0, 8000);
+    const lower = request.toLowerCase();
+    const requirements = [];
+    const keywords = [
+      ["multiplayer", "multiplayer"],
+      ["primeira pessoa", "first-person"],
+      ["terceira pessoa", "third-person"],
+      ["vr", "vr"],
+      ["realista", "realistic"],
+      ["terror", "horror"],
+      ["zumbi", "zombie"],
+      ["zombie", "zombie"],
+      ["inventário", "inventory"],
+      ["inventario", "inventory"],
+      ["save", "save"],
+      ["salvar", "save"],
+      ["menu", "menu"],
+      ["boss", "boss"],
+      ["npc", "npc"],
+      ["animação", "animation"],
+      ["animacao", "animation"],
+      ["som", "audio"],
+      ["música", "audio"],
+      ["musica", "audio"]
+    ];
+    for (const [term, id] of keywords) {
+      if (lower.includes(term)) requirements.push(id);
+    }
+
+    const quoted = [];
+    request.replace(/["“”']([^"“”']{2,120})["“”']/g, (_, value) => {
+      quoted.push(value.trim());
+      return _;
+    });
+
+    const constraints = [];
+    if (task.target !== "generic") constraints.push({ type: "target", value: task.target });
+    if (task.language !== "unknown") constraints.push({ type: "language", value: task.language });
+
+    return {
+      summary: request.slice(0, 500),
+      kind: task.kind,
+      detectedFeatures: [...new Set(requirements)],
+      explicitTerms: [...new Set(quoted)].slice(0, 20),
+      constraints,
+      missing: task.language === "unknown" ? ["language"] : [],
+      confidence: Math.min(1, 0.45 + (requirements.length * 0.05) + (constraints.length * 0.1)),
+      analyzedAt: new Date().toISOString()
+    };
+  }
+
+  function getPlanStep(plan, stepId) {
+    return Array.isArray(plan?.steps) ? plan.steps.find(step => step.id === stepId) || null : null;
+  }
+
   function makeSteps(prompt, task) {
     const steps = [
       { id: "analyze", type: "analysis", title: "Analisar requisitos", status: "pending" },
@@ -114,6 +171,12 @@
     updateProgramPlan,
     listProgramPlans
   };
+
+  window.ANZUBA_AI_BRIDGE?.on("ai.program.requirements.analyze", ({ prompt, id } = {}) => {
+    const request = String(prompt || "").trim();
+    const task = detectTask(request);
+    return analyzeRequirements(request, task);
+  });
 
   window.ANZUBA_AI_BRIDGE?.on("ai.program.plan.create", ({ prompt, options, id } = {}) =>
     createProgramPlan(prompt, options || {}, id));
