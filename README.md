@@ -148,6 +148,10 @@ Adicionado o gerenciador de kernel do ANZUBA OS, integrando boot e shutdown do s
 
 Adicionada a camada de armazenamento virtual persistente e isolada por projeto. Ela oferece armazenamento de valores estruturados por chave, listagem por prefixo, remoção, limpeza, quota configurável e relatório de uso. A IA pode usar `storage.get`, `storage.set`, `storage.remove`, `storage.list`, `storage.clear`, `storage.quota.set` e `storage.status`.
 
+### Etapa 47/275 — Volumes de armazenamento virtual
+
+Adicionada a camada de volumes virtuais do armazenamento do ANZUBA OS. Cada projeto pode criar volumes nomeados com ponto de montagem, quota própria e estado montado/desmontado. Os dados de cada volume ficam separados do armazenamento de chaves global e possuem operações próprias de leitura, escrita, listagem e diagnóstico. A IA pode usar `storage.volumes.list`, `storage.volume.create`, `storage.volume.remove`, `storage.volume.mount`, `storage.volume.status`, `storage.volume.set`, `storage.volume.get` e `storage.volume.list`.
+
 ## Próximas etapas
 41–45: expansão do núcleo do ANZUBA OS
 46–52: armazenamento
