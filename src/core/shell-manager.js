@@ -107,7 +107,7 @@
 
   async function touch(args, value, project) {
     if (!args.length) return { stderr: "touch: informe um arquivo", exitCode: 1 };
-    const fs = await window.ANZUBA_FS.get();
+    const fs = await window.ANZUBA_FS.get(project);
     for (const arg of args) {
       const path = resolvePath(arg, value.cwd);
       if (await window.ANZUBA_FS.exists(path, project)) continue;
