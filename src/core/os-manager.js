@@ -165,7 +165,8 @@
     get,
     status,
     boot,
-    shutdown
+    shutdown,
+    getHealth
   };
 
   window.ANZUBA_AI_BRIDGE?.on("os.status", ({ id } = {}) => status(id));
