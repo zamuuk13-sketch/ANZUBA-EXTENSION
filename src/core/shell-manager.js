@@ -57,14 +57,20 @@
     return window.ANZUBA_FS.normalize((cwd || "/") + "/" + value);
   }
 
-  async function currentUser(project) {\n    const env = await window.ANZUBA_ENV.get(project);\n    return String(env?.USER || "ai");\n  }\n\n  async function cd(args, value, project) {
+  async function currentUser(project) {
+    const env = await window.ANZUBA_ENV.get(project);
+    return String(env?.USER || "ai");
+  }
+
+  async function cd(args, value, project) {
     const target = resolvePath(args[0] || "~", value.cwd);
     const fs = await window.ANZUBA_FS.get(project);
     const key = target === "/" ? "/" : target + "/";
     if (!fs?.[key] || fs[key].type !== "directory") {
       return { stderr: "cd: diretório não encontrado: " + (args[0] || "~"), exitCode: 1 };
     }
-    if (!await window.ANZUBA_USERS?.checkAccess?.(fs[key], await currentUser(project), "x", project)) return { stderr: "cd: permissão negada: " + (args[0] || "~"), exitCode: 1 };\n    value.cwd = target;
+    if (!await window.ANZUBA_USERS?.checkAccess?.(fs[key], await currentUser(project), "x", project)) return { stderr: "cd: permissão negada: " + (args[0] || "~"), exitCode: 1 };
+    value.cwd = target;
     return {};
   }
 
