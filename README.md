@@ -164,6 +164,10 @@ Adicionada verificação de integridade do armazenamento virtual. O ANZUBA ident
 
 Adicionado backup lógico do armazenamento virtual por projeto. A IA pode exportar o estado completo de armazenamento com `storage.export` e importar um backup validado com `storage.import`. A importação pode substituir o estado atual ou fazer merge de entradas, volumes e snapshots.
 
+### Etapa 51/275 — Cache virtual
+
+Adicionado cache virtual persistente e isolado por projeto, separado do armazenamento principal. O cache suporta chaves, quota própria, TTL opcional, estatísticas de acesso, listagem, limpeza e expurgo de entradas expiradas. A IA pode usar `cache.get`, `cache.set`, `cache.remove`, `cache.list`, `cache.clear`, `cache.purge`, `cache.quota.set` e `cache.status`.
+
 ## Próximas etapas
 41–45: expansão do núcleo do ANZUBA OS
 46–52: armazenamento
