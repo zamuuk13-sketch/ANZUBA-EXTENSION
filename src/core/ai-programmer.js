@@ -435,6 +435,71 @@
     };
   }
 
+  async function prepareProgramBuild(planId, options = {}, id) {
+    const pid = projectId(id);
+    const plan = await getProgramPlan(planId, pid);
+    if (!plan) return { projectId: pid, ok: false, reason: "plan-not-found" };
+
+    if (!window.ANZUBA_TOOLS?.prepareBuild) {
+      return { projectId: pid, ok: false, reason: "build-system-unavailable" };
+    }
+
+    const sourcePath = String(
+      options.sourcePath ||
+      plan.workspace?.entryPath ||
+      ""
+    ).trim().replace(/\\\\/g, "/");
+
+    if (!sourcePath) {
+      return { projectId: pid, ok: false, reason: "source-path-required" };
+    }
+
+    let compilerId = String(options.compilerId || "").trim();
+    let compiler = null;
+
+    if (!compilerId && window.ANZUBA_TOOLS.findCompilerForLanguage) {
+      compiler = await window.ANZUBA_TOOLS.findCompilerForLanguage(plan.task?.language, pid);
+      compilerId = String(compiler?.id || "").trim();
+    }
+
+    if (!compilerId) {
+      return { projectId: pid, ok: false, reason: "compiler-not-found", sourcePath };
+    }
+
+    const prepared = await window.ANZUBA_TOOLS.prepareBuild(sourcePath, compilerId, {
+      output: options.output || null,
+      args: Array.isArray(options.args) ? options.args.slice(0, 50) : [],
+      cwd: options.cwd || plan.workspace?.root || "/workspace",
+      user: options.user || "ai",
+      environment: options.environment || {}
+    }, pid);
+
+    if (!prepared?.ok) {
+      return {
+        projectId: pid,
+        ok: false,
+        reason: "build-preparation-failed",
+        prepared
+      };
+    }
+
+    const updated = await updateProgramPlan(plan.id, {
+      status: "running",
+      stepId: "build",
+      stepStatus: "running"
+    }, pid);
+
+    return {
+      projectId: pid,
+      ok: true,
+      planId: plan.id,
+      sourcePath,
+      compiler: compiler ? clone(compiler) : null,
+      prepared,
+      plan: updated
+    };
+  }
+
   async function getProgramPlan(planId, id) {
     const plans = await getPlans(id);
     return plans.find(plan => plan.id === String(planId || "").trim()) || null;
@@ -477,6 +542,7 @@
     generateProgramFiles,
     generateImplementation,
     validateProgramImplementation,
+    prepareProgramBuild,
     prepareProgramWorkspace,
     updateProgramPlan,
     listProgramPlans,
@@ -496,6 +562,9 @@
     getProgramPlan(planId, id));
   window.ANZUBA_AI_BRIDGE?.on("ai.program.scaffold", ({ planId, options, id } = {}) =>
     scaffoldProgram(planId, options || {}, id));
+
+  window.ANZUBA_AI_BRIDGE?.on("ai.program.build.prepare", ({ planId, options, id } = {}) =>
+    prepareProgramBuild(planId, options || {}, id));
 
   window.ANZUBA_AI_BRIDGE?.on("ai.program.implementation.validate", ({ planId, options, id } = {}) =>
     validateProgramImplementation(planId, options || {}, id));
