@@ -263,6 +263,12 @@ Os runtimes de linguagem agora possuem configuração persistente por projeto. A
 Adicionada a camada de identificação de linguagens do projeto. O ANZUBA pode registrar uma linguagem com ID, extensões e metadados e detectar a linguagem associada a um arquivo pelo caminho/extensão. A IA pode usar `ANZUBA_TOOLS.registerLanguage` e `ANZUBA_TOOLS.findLanguageByFile`, ou os comandos `language.register` e `language.detectFile`.
 
 
+
+### Etapa 69/275 — Detecção inteligente de linguagem
+
+A detecção de linguagem foi ampliada além da extensão do arquivo. O ANZUBA agora pode analisar shebangs como `#!/usr/bin/env python` e pistas básicas do conteúdo para identificar a linguagem registrada no projeto. A IA pode usar `ANZUBA_TOOLS.detectLanguage` ou o comando `language.detect`, recebendo também o método usado na identificação.
+
+
 ### Etapa 59/275 — Catálogo inteligente de ferramentas
 
 O Tool Manager agora possui busca e recomendação local de ferramentas, com filtros por tipo/status, pontuação por relevância, prioridade para correspondência de nome e limite controlado de resultados. Tudo permanece isolado por projeto.
