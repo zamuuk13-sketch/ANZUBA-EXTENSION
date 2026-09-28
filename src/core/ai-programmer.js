@@ -132,6 +132,52 @@
     return clone(plan);
   }
 
+  async function prepareProgramWorkspace(planId, id) {
+    const pid = projectId(id);
+    const plans = await getPlans(pid);
+    const index = plans.findIndex(plan => plan.id === String(planId || "").trim());
+    if (index < 0) return { projectId: pid, ok: false, reason: "plan-not-found" };
+
+    const plan = plans[index];
+    const fs = window.ANZUBA_FS;
+    if (!fs?.mkdir || !fs?.list) return { projectId: pid, ok: false, reason: "filesystem-unavailable" };
+
+    const root = "/workspace/" + plan.id.replace(/[^a-zA-Z0-9_-]/g, "_") + "/";
+    const directories = [root, root + "src/", root + "assets/", root + "build/", root + "tests/"];
+    const created = [];
+    const existing = [];
+
+    for (const path of directories) {
+      const parent = path.slice(0, -1).split("/").slice(0, -1).join("/") || "/";
+      const name = path.slice(0, -1).split("/").pop();
+      const entries = await fs.list(parent, pid, { username: "ai" });
+      if (entries.some(item => item.name === name)) {
+        existing.push(path);
+        continue;
+      }
+      if (!(await fs.mkdir(path, pid, { username: "ai", mode: "775" }))) {
+        return { projectId: pid, ok: false, reason: "workspace-create-failed", path, created, existing };
+      }
+      created.push(path);
+    }
+
+    const now = new Date().toISOString();
+    plans[index] = {
+      ...plan,
+      workspace: { root, directories, preparedAt: now },
+      status: "running",
+      currentStep: "workspace",
+      updatedAt: now,
+      steps: Array.isArray(plan.steps) ? plan.steps.map(step =>
+        step.id === "analyze" || step.id === "workspace"
+          ? { ...step, status: "completed" }
+          : step
+      ) : []
+    };
+    await window.ANZUBA_PROJECTS?.setData?.({ [PLAN_KEY]: plans }, pid);
+    return { projectId: pid, ok: true, plan: clone(plans[index]), workspace: { root, directories, created, existing } };
+  }
+
   async function getProgramPlan(planId, id) {
     const plans = await getPlans(id);
     return plans.find(plan => plan.id === String(planId || "").trim()) || null;
@@ -170,6 +216,7 @@
   window.ANZUBA_AI_PROGRAMMER = {
     createProgramPlan,
     getProgramPlan,
+    prepareProgramWorkspace,
     updateProgramPlan,
     listProgramPlans,
     analyzeRequirements,
@@ -186,6 +233,9 @@
     createProgramPlan(prompt, options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("ai.program.plan.get", ({ planId, id } = {}) =>
     getProgramPlan(planId, id));
+  window.ANZUBA_AI_BRIDGE?.on("ai.program.workspace.prepare", ({ planId, id } = {}) =>
+    prepareProgramWorkspace(planId, id));
+
   window.ANZUBA_AI_BRIDGE?.on("ai.program.plan.update", ({ planId, patch, id } = {}) =>
     updateProgramPlan(planId, patch || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("ai.program.plans.list", ({ id } = {}) =>
