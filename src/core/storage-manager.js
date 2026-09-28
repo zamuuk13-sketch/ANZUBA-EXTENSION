@@ -297,8 +297,13 @@
       .reduce((sum, [, entry]) => sum + Number(entry?.sizeBytes || 0), 0);
     const nextBytes = currentBytes - previousBytes + nextEntry.sizeBytes;
     const quotaBytes = state.volumes[volume].quotaMB * 1024 * 1024;
+    const globalCurrentBytes = Object.values(state.entries)
+      .reduce((sum, entry) => sum + Number(entry?.sizeBytes || 0), 0);
+    const globalNextBytes = globalCurrentBytes - previousBytes + nextEntry.sizeBytes;
+    const globalQuotaBytes = state.quotaMB * 1024 * 1024;
 
     if (nextBytes > quotaBytes) throw new Error("Quota do volume excedida.");
+    if (globalNextBytes > globalQuotaBytes) throw new Error("Quota de armazenamento virtual excedida.");
 
     state.entries[entryKey] = nextEntry;
     state.volumes[volume].updatedAt = new Date().toISOString();
@@ -471,6 +476,18 @@
       }
     }
 
+    Object.entries(state.snapshots || {}).forEach(([name, snapshot]) => {
+      if (!snapshot || typeof snapshot !== "object" ||
+          !snapshot.entries || typeof snapshot.entries !== "object" ||
+          !snapshot.volumes || typeof snapshot.volumes !== "object") {
+        issues.push(`snapshot inválido: ${name}`);
+        if (repair) {
+          delete state.snapshots[name];
+          repaired.push(`snapshot:${name}`);
+        }
+      }
+    });
+
     if (repair && repaired.length) await saveState(state, pid);
 
     return {
@@ -526,6 +543,13 @@
 
     if (!next.volumes.root || typeof next.volumes.root !== "object") {
       next.volumes.root = clone(DEFAULT_STORAGE.volumes.root);
+    }
+
+    const importedBytes = Object.values(next.entries)
+      .reduce((sum, entry) => sum + Number(entry?.sizeBytes || 0), 0);
+    const quotaBytes = next.quotaMB * 1024 * 1024;
+    if (importedBytes > quotaBytes) {
+      throw new Error("Backup excede a quota de armazenamento virtual.");
     }
 
     const replace = options.replace !== false;
