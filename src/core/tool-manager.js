@@ -1276,6 +1276,65 @@
     };
   }
 
+  async function getBuildSystemDiagnostics(id) {
+    const pid = projectId(id);
+    const issues = [];
+    const targets = await getBuildTargets(pid);
+    const profiles = await getBuildProfiles(pid);
+    const manifests = await getProjectBuildManifests(pid);
+    const jobs = await getCompileJobs(pid);
+    const artifacts = await getBuildArtifacts(pid);
+
+    for (const target of targets) {
+      if (!target || String(target.projectId || pid) !== pid) issues.push("target-project-mismatch");
+      if (!String(target?.name || "").trim()) issues.push("target-name-missing");
+      if (target?.name) {
+        const validation = await validateBuildTarget(target.name, pid);
+        if (!validation.ok) issues.push("target-invalid");
+      }
+    }
+
+    for (const manifest of manifests) {
+      if (!manifest || String(manifest.projectId || "") !== pid) {
+        issues.push("manifest-project-mismatch");
+        continue;
+      }
+      const validation = await validateBuildManifest(manifest, pid);
+      if (!validation.ok) issues.push(...validation.issues.map(issue => "manifest:" + issue));
+    }
+
+    for (const job of jobs) {
+      if (!job || String(job.projectId || "") !== pid) {
+        issues.push("job-project-mismatch");
+        continue;
+      }
+      if (!String(job.compilerId || "").trim()) issues.push("job-compiler-missing");
+      if (!String(job.sourcePath || "").startsWith("/")) issues.push("job-source-invalid");
+      if (job.processId != null && window.ANZUBA_PROCESSES?.get) {
+        const process = await window.ANZUBA_PROCESSES.get(job.processId, pid);
+        if (!process && ["queued", "running"].includes(job.status)) issues.push("job-process-missing");
+      }
+    }
+
+    for (const artifact of artifacts) {
+      if (!artifact || String(artifact.projectId || "") !== pid) {
+        issues.push("artifact-project-mismatch");
+        continue;
+      }
+      const validation = await validateBuildArtifact(artifact.id, pid);
+      if (!validation.artifact) issues.push("artifact-missing");
+      if (!validation.job) issues.push("artifact-job-missing");
+    }
+
+    const uniqueIssues = [...new Set(issues)];
+    return {
+      projectId: pid,
+      ok: uniqueIssues.length === 0,
+      issues: uniqueIssues,
+      counts: { targets: targets.length, profiles: profiles.length, manifests: manifests.length, jobs: jobs.length, artifacts: artifacts.length }
+    };
+  }
+
   async function getBuildTargets(id) {
     const pid = projectId(id);
     const data = await window.ANZUBA_PROJECTS?.getData?.(pid);
@@ -2202,6 +2261,7 @@
     listBuildArtifacts,
     removeBuildArtifact,
     validateBuildArtifact,
+    getBuildSystemDiagnostics,
     getBuildTargets,
     resolveBuildTarget,
     prepareBuildTarget,
@@ -2267,6 +2327,7 @@
   window.ANZUBA_AI_BRIDGE?.on("build.plan.validate", ({ plan, id } = {}) => validateBuildPlan(plan || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("build.target.prepare", ({ name, sourcePath, options, id } = {}) => prepareBuildTarget(name, sourcePath, options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("build.target.resolve", ({ name, sourcePath, id } = {}) => resolveBuildTarget(name, sourcePath, id));
+  window.ANZUBA_AI_BRIDGE?.on("build.system.diagnostics", ({ id } = {}) => getBuildSystemDiagnostics(id));
   window.ANZUBA_AI_BRIDGE?.on("build.target.get", ({ name, id } = {}) => getBuildTarget(name, id));
   window.ANZUBA_AI_BRIDGE?.on("build.targets.list", ({ id } = {}) => getBuildTargets(id));
   window.ANZUBA_AI_BRIDGE?.on("build.target.set", ({ name, config, id } = {}) => setBuildTarget(name, config || {}, id));
