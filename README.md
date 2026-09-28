@@ -1,5 +1,13 @@
 # ANZUBA
 
+### Etapa 33/275 — Usuários, grupos e permissões
+
+O ANZUBA OS agora possui identidade de usuários e grupos por projeto. Cada ambiente começa com os usuários virtuais `root` e `ai`, grupos correspondentes e dados de home/shell. O núcleo permite criar e remover usuários adicionais, bloquear/desbloquear contas e consultar grupos.
+
+Também foi criada a primeira camada de permissões estilo Unix, com proprietário, grupo e bits `rwx`. O usuário `root` possui acesso administrativo e os demais usuários podem ser avaliados pelas permissões de proprietário, grupo ou outros. As APIs ficam disponíveis em `window.ANZUBA_USERS`, com os comandos `user.list`, `user.get`, `user.create`, `user.remove`, `user.lock` e `permission.check`.
+
+# ANZUBA
+
 ### Etapa 32/275 — Gerenciador de processos do ANZUBA OS
 
 O ANZUBA agora possui um registro de processos virtual por projeto. Cada processo recebe PID, nome, comando, argumentos, usuário, diretório de trabalho, estado, horários e código de saída. O núcleo permite listar, consultar, iniciar, parar e finalizar processos sem misturar os estados entre projetos.
