@@ -138,36 +138,42 @@
   }
 
   async function ensureInit(projectId) {
-    const processes = await list(projectId);
-    const init = processes.find(process => process.pid === 1 && process.name === "anzuba-init");
-    if (init?.state === "running") return init;
-    if (init) {
-      return spawn({
-        name: "anzuba-init",
-        command: "/bin/anzuba-init",
-        user: "root",
-        cwd: "/"
-      }, projectId);
+    const id = projectIdOrActive(projectId);
+    const state = await getState(id);
+    if (!state) return null;
+
+    const init = state.processes.find(process => process.pid === 1 && process.name === "anzuba-init");
+    if (init?.state === "running") return clone(init);
+
+    const existingPidOne = state.processes.find(process => process.pid === 1);
+    if (existingPidOne) {
+      existingPidOne.state = "terminated";
+      existingPidOne.exitCode = 0;
+      existingPidOne.endedAt = new Date().toISOString();
     }
-    const created = await spawn({
+
+    const process = normalizeProcess({
+      pid: 1,
       name: "anzuba-init",
       command: "/bin/anzuba-init",
       user: "root",
-      cwd: "/"
-    }, projectId);
+      cwd: "/",
+      state: "running",
+      startedAt: new Date().toISOString(),
+      endedAt: null,
+      exitCode: null
+    });
 
-    if (created && created.pid !== 1) {
-      const state = await getState(projectId);
-      const process = state?.processes.find(item => item.pid === created.pid);
-      if (process) {
-        process.pid = 1;
-        state.nextPid = Math.max(state.nextPid, 2);
-        await saveState(state, projectId);
-        return clone(process);
-      }
-    }
+    state.processes = state.processes.filter(item => item.pid !== 1);
+    state.processes.push(process);
+    state.nextPid = Math.max(2, Number(state.nextPid || 1));
+    await saveState(state, id);
 
-    return created;
+    window.dispatchEvent(new CustomEvent("anzuba:process-started", {
+      detail: { projectId: id, process: clone(process) }
+    }));
+
+    return clone(process);
   }
 
   async function shutdownAll(projectId) {
