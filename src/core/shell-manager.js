@@ -93,10 +93,10 @@
 
   async function mkdir(args, value, project) {
     if (!args.length) return { stderr: "mkdir: informe um diretório", exitCode: 1 };
-    const fs = await window.ANZUBA_FS.get();
+    const fs = await window.ANZUBA_FS.get(project);
     for (const arg of args) {
       const path = resolvePath(arg, value.cwd);
-      if (await window.ANZUBA_FS.exists(path)) return { stderr: "mkdir: já existe: " + arg, exitCode: 1 };
+      if (await window.ANZUBA_FS.exists(path, project)) return { stderr: "mkdir: já existe: " + arg, exitCode: 1 };
       const parent = path.split("/").slice(0, -1).join("/") || "/";
       const key = parent === "/" ? "/" : parent + "/";
       if (!fs?.[key]) return { stderr: "mkdir: diretório pai não encontrado: " + parent, exitCode: 1 };
@@ -110,7 +110,7 @@
     const fs = await window.ANZUBA_FS.get();
     for (const arg of args) {
       const path = resolvePath(arg, value.cwd);
-      if (await window.ANZUBA_FS.exists(path)) continue;
+      if (await window.ANZUBA_FS.exists(path, project)) continue;
       const parent = path.split("/").slice(0, -1).join("/") || "/";
       const key = parent === "/" ? "/" : parent + "/";
       if (!fs?.[key]) return { stderr: "touch: diretório pai não encontrado: " + parent, exitCode: 1 };
@@ -200,7 +200,7 @@
     for (const dir of pathEntries) {
       const base = window.ANZUBA_FS.normalize(String(dir || "/"));
       const candidate = base === "/" ? "/" + target : base + "/" + target;
-      if (fs[candidate]?.type === "file") return candidate;
+      if (fs[candidate]?.type === "file" && await window.ANZUBA_USERS?.checkAccess?.(fs[candidate], await currentUser(project), "x", project)) return candidate;
     }
     return null;
   }
