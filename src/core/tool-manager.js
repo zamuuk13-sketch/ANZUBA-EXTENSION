@@ -49,6 +49,9 @@
         if (typeof item === "string") return { name: String(item).trim(), path: null, args: [] };
         return { name: String(item?.name || "").trim(), path: item?.path ? String(item.path).trim() : null, args: Array.isArray(item?.args) ? item.args.map(String).slice(0, 20) : [] };
       }).filter(item => /^[A-Za-z0-9._-]{1,80}$/.test(item.name)).slice(0, 50) : [],
+      languageId: tool.languageId ? String(tool.languageId).slice(0, 80) : null,
+      languageName: tool.languageName ? String(tool.languageName).slice(0, 80) : null,
+      extensions: Array.isArray(tool.extensions) ? [...new Set(tool.extensions.map(String).map(value => value.toLowerCase()).filter(value => /^\\.[a-z0-9][a-z0-9._-]{0,15}$/.test(value)))].slice(0, 30) : [],
       runtimeConfig: {
         environment: tool.runtimeConfig?.environment && typeof tool.runtimeConfig.environment === "object" ? { ...tool.runtimeConfig.environment } : {},
         workingDirectory: tool.runtimeConfig?.workingDirectory ? String(tool.runtimeConfig.workingDirectory).slice(0, 512) : null
@@ -151,6 +154,61 @@
   async function listLanguageRuntimes(id) {
     const tools = await getAll(id);
     return tools.filter(tool => tool.type === "runtime" && tool.status === "installed").map(clone);
+  }
+
+  async function registerLanguage(language = {}, id) {
+    const pid = projectId(id);
+    const name = String(language.name || "").trim().slice(0, 80);
+    const idValue = String(language.id || name.toLowerCase().replace(/[^a-z0-9]+/g, "-")).slice(0, 80);
+    if (!name || !idValue) throw new Error("Linguagem inválida.");
+
+    const extensions = [...new Set((Array.isArray(language.extensions) ? language.extensions : [])
+      .map(value => String(value).trim().toLowerCase())
+      .filter(value => /^\.[a-z0-9][a-z0-9._-]{0,15}$/.test(value)))].slice(0, 30);
+
+    const tools = await getAll(pid);
+    const existing = tools.find(tool => tool.type === "runtime" && tool.languageId === idValue);
+    const updated = normalize({
+      ...(existing || {}),
+      id: existing?.id || crypto.randomUUID(),
+      name: existing?.name || name,
+      type: "runtime",
+      version: existing?.version || String(language.version || "").trim().slice(0, 64),
+      status: existing?.status || "available",
+      languageId: idValue,
+      languageName: name,
+      extensions,
+      source: language.source ? String(language.source).slice(0, 500) : existing?.source || null,
+      homepage: language.homepage ? String(language.homepage).slice(0, 500) : existing?.homepage || null,
+      description: language.description ? String(language.description).slice(0, 500) : existing?.description || "Definição de linguagem do ANZUBA"
+    });
+
+    const index = tools.findIndex(tool => tool.id === updated.id);
+    if (index >= 0) tools[index] = updated;
+    else tools.push(updated);
+    await saveAll(tools, pid);
+    return clone(updated);
+  }
+
+  async function findLanguageByFile(filePath, id) {
+    const pid = projectId(id);
+    const value = String(filePath || "").trim().toLowerCase();
+    const dot = value.lastIndexOf(".");
+    if (dot < 0) return null;
+    const extension = value.slice(dot);
+
+    const tools = await getAll(pid);
+    const matches = tools
+      .filter(tool => tool.type === "runtime" && Array.isArray(tool.extensions) && tool.extensions.includes(extension))
+      .map(tool => ({
+        id: tool.languageId || tool.id,
+        name: tool.languageName || tool.name,
+        extension,
+        runtimeId: tool.id,
+        runtimeInstalled: tool.status === "installed"
+      }));
+
+    return matches.length ? matches : null;
   }
 
   async function health(id) {
@@ -964,6 +1022,8 @@
     listLanguageRuntimes,
     getLanguageRuntime,
     setLanguageRuntimeConfig,
+    registerLanguage,
+    findLanguageByFile,
     syncExecutables,
     executeExecutable
   };
@@ -977,6 +1037,8 @@
   window.ANZUBA_AI_BRIDGE?.on("tools.runtime.list", ({ id } = {}) => listLanguageRuntimes(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.runtime.get", ({ name, id } = {}) => getLanguageRuntime(name, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.runtime.config.set", ({ name, config, id } = {}) => setLanguageRuntimeConfig(name, config, id));
+  window.ANZUBA_AI_BRIDGE?.on("language.register", ({ language, id } = {}) => registerLanguage(language, id));
+  window.ANZUBA_AI_BRIDGE?.on("language.detectFile", ({ filePath, id } = {}) => findLanguageByFile(filePath, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executable.run", ({ name, args, cwd, user, id } = {}) => executeExecutable(name, { args, cwd, user }, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.search", ({ query, id } = {}) => catalog(query || {}, id));
