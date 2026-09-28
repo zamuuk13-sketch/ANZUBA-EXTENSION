@@ -456,7 +456,11 @@
     list,
     register,
     install,
-    uninstall
+    uninstall,
+    setCompatibility,
+    validateCompatibility,
+    compareVersions,
+    satisfiesRange
   };
 
   window.ANZUBA_AI_BRIDGE?.on("tools.compatibility.set", ({ toolId, compatibility, id } = {}) => setCompatibility(toolId, compatibility || {}, id));
