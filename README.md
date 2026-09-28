@@ -362,3 +362,6 @@ Adicionada a validação estrutural dos manifestos de build. O ANZUBA verifica f
 ### Etapa 88/275 — Execução de manifestos de build
 
 Adicionada a execução controlada de manifestos de build. O ANZUBA valida o manifesto, confirma o compilador e o arquivo de origem no projeto, cria o job de compilação no runtime virtual e registra o artefato como pendente quando há uma saída definida. A operação está disponível pela API `ANZUBA_TOOLS.executeBuildManifest` e pelo comando Bridge `build.manifest.execute`. A execução continua restrita ao ambiente virtual do ANZUBA OS.
+### Etapa 89/275 — Atualização do estado de builds
+
+Adicionada a atualização dos jobs de build a partir do processo virtual do ANZUBA OS. A operação `refreshBuildJob` sincroniza estado, código de saída e erro do job, verifica os artefatos no filesystem virtual e atualiza cada artefato para `available`, `missing` ou `invalid`. A AI Bridge expõe `compiler.job.refresh`.
