@@ -444,3 +444,7 @@ Adicionado controle persistente de visibilidade das entidades, com consulta do e
 ### Etapa 110/275 — Diagnóstico da Game Engine + auditoria da década
 
 Adicionado diagnóstico integrado da Game Engine com verificação de configuração, cenas, entidades, componentes, hierarquias, IDs duplicados, pais ausentes, ciclos e isolamento por projeto. Bridge: `game.engine.diagnostics`. Após a implementação, foi realizada a varredura de bugs e a auditoria completa das etapas 101–110, com correções de validação de pai na duplicação e limpeza de referências hierárquicas ao remover entidades.
+
+### Etapa 111/275 — Duplicação de cenas
+
+A Game Engine agora permite duplicar uma cena completa dentro do projeto. A cópia recebe novo ID e novos IDs para suas entidades, preserva configurações e componentes, remapeia referências hierárquicas internas e a câmera ativa quando aplicável, respeita o limite de cenas e fica persistida no projeto. Bridge: `game.scene.duplicate`.
