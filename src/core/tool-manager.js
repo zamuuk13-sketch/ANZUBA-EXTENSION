@@ -1,7 +1,8 @@
 (() => {
   const TOOL_KEY = "tools";
   const TOOL_TYPES = ["tool", "compiler", "sdk", "library", "runtime", "engine", "package"];
-  const STATES = ["available", "installing", "installed", "failed", "removed"];\n  const SOURCE_TYPES = ["official", "repository", "registry", "url", "local"];
+  const STATES = ["available", "installing", "installed", "failed", "removed"];
+  const SOURCE_TYPES = ["official", "repository", "registry", "url", "local"];
 
   function clone(value) {
     return JSON.parse(JSON.stringify(value));
@@ -36,7 +37,11 @@
       type,
       version: String(tool.version || "").trim().slice(0, 64),
       description: String(tool.description || "").slice(0, 500),
-      source: tool.source ? String(tool.source).slice(0, 500) : null,\n      sourceType: SOURCE_TYPES.includes(tool.sourceType) ? tool.sourceType : "official",\n      homepage: tool.homepage ? String(tool.homepage).slice(0, 500) : null,\n      license: tool.license ? String(tool.license).slice(0, 120) : null,\n      versions: Array.isArray(tool.versions) ? tool.versions.map(version => String(version).slice(0, 64)).slice(0, 100) : [],
+      source: tool.source ? String(tool.source).slice(0, 500) : null,
+      sourceType: SOURCE_TYPES.includes(tool.sourceType) ? tool.sourceType : "official",
+      homepage: tool.homepage ? String(tool.homepage).slice(0, 500) : null,
+      license: tool.license ? String(tool.license).slice(0, 120) : null,
+      versions: Array.isArray(tool.versions) ? tool.versions.map(version => String(version).slice(0, 64)).slice(0, 100) : [],
       path: tool.path ? String(tool.path).slice(0, 512) : null,
       status,
       dependencies: Array.isArray(tool.dependencies) ? tool.dependencies.map(String).slice(0, 50) : [],
@@ -46,7 +51,36 @@
     };
   }
 
-  async function updateMetadata(toolId, metadata = {}, id) {\n    const pid = projectId(id);\n    const tools = await getAll(pid);\n    const index = tools.findIndex(tool => tool.id === toolId);\n    if (index < 0) return null;\n    const allowed = ["source", "sourceType", "homepage", "license", "versions", "description"];\n    const changes = {};\n    for (const key of allowed) {\n      if (Object.prototype.hasOwnProperty.call(metadata, key)) changes[key] = metadata[key];\n    }\n    tools[index] = normalize({ ...tools[index], ...changes, id: tools[index].id });\n    await saveAll(tools, pid);\n    return clone(tools[index]);\n  }\n\n  async function getSources(toolId, id) {\n    const tool = await get(toolId, id);\n    if (!tool) return null;\n    return {\n      toolId: tool.id,\n      name: tool.name,\n      source: tool.source,\n      sourceType: tool.sourceType,\n      homepage: tool.homepage,\n      license: tool.license,\n      versions: [...tool.versions]\n    };\n  }\n\n  async function register(tool = {}, id) {
+  async function updateMetadata(toolId, metadata = {}, id) {
+    const pid = projectId(id);
+    const tools = await getAll(pid);
+    const index = tools.findIndex(tool => tool.id === toolId);
+    if (index < 0) return null;
+    const allowed = ["source", "sourceType", "homepage", "license", "versions", "description"];
+    const changes = {};
+    for (const key of allowed) {
+      if (Object.prototype.hasOwnProperty.call(metadata, key)) changes[key] = metadata[key];
+    }
+    tools[index] = normalize({ ...tools[index], ...changes, id: tools[index].id });
+    await saveAll(tools, pid);
+    return clone(tools[index]);
+  }
+
+  async function getSources(toolId, id) {
+    const tool = await get(toolId, id);
+    if (!tool) return null;
+    return {
+      toolId: tool.id,
+      name: tool.name,
+      source: tool.source,
+      sourceType: tool.sourceType,
+      homepage: tool.homepage,
+      license: tool.license,
+      versions: [...tool.versions]
+    };
+  }
+
+  async function register(tool = {}, id) {
     const pid = projectId(id);
     if (!pid) return null;
     const tools = await getAll(pid);
@@ -133,7 +167,9 @@
 
   window.ANZUBA_AI_BRIDGE?.on("tools.list", ({ filter, id } = {}) => list(filter || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.get", ({ toolId, id } = {}) => get(toolId, id));
-  window.ANZUBA_AI_BRIDGE?.on("tools.register", ({ tool, id } = {}) => register(tool, id));\n  window.ANZUBA_AI_BRIDGE?.on("tools.metadata.update", ({ toolId, metadata, id } = {}) => updateMetadata(toolId, metadata || {}, id));\n  window.ANZUBA_AI_BRIDGE?.on("tools.sources.get", ({ toolId, id } = {}) => getSources(toolId, id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.register", ({ tool, id } = {}) => register(tool, id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.metadata.update", ({ toolId, metadata, id } = {}) => updateMetadata(toolId, metadata || {}, id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.sources.get", ({ toolId, id } = {}) => getSources(toolId, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.install", ({ toolId, id } = {}) => install(id, toolId));
   window.ANZUBA_AI_BRIDGE?.on("tools.uninstall", ({ toolId, id } = {}) => uninstall(id, toolId));
 })();
