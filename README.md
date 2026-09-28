@@ -374,3 +374,6 @@ Adicionado o núcleo inicial do AI Programmer. A IA agora pode transformar uma s
 ### Etapa 92/275 — Análise de requisitos do AI Programmer
 
 O AI Programmer agora analisa a solicitação antes de criar o plano, detectando características do projeto, termos explícitos, restrições de alvo/linguagem e possíveis requisitos ausentes. A análise fica persistida junto ao plano e também pode ser solicitada diretamente pelo comando Bridge `ai.program.requirements.analyze`.
+### Etapa 93/275 — Preparação automática do workspace
+
+O AI Programmer agora pode preparar o workspace virtual de um plano de projeto. Ele cria uma raiz isolada em `/workspace/` com diretórios para código-fonte, assets, builds e testes, reutiliza diretórios já existentes e registra o workspace no plano. O comando Bridge `ai.program.workspace.prepare` executa essa preparação por projeto.
