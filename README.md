@@ -156,6 +156,10 @@ Adicionada a camada de volumes virtuais do armazenamento do ANZUBA OS. Cada proj
 
 Adicionado sistema de snapshots persistentes por projeto. O ANZUBA pode criar uma cópia do estado dos dados e volumes, listar snapshots disponíveis, restaurar um snapshot e removê-lo. A restauração substitui o estado atual dos dados e volumes pelo estado salvo no snapshot. A IA pode usar `storage.snapshots.list`, `storage.snapshot.create`, `storage.snapshot.restore` e `storage.snapshot.remove`.
 
+### Etapa 49/275 — Integridade do armazenamento
+
+Adicionada verificação de integridade do armazenamento virtual. O ANZUBA identifica estruturas inválidas de entradas, volumes e snapshots e pode reparar automaticamente estruturas corrompidas ou ausentes, preservando o isolamento do projeto. A IA pode usar `storage.integrity` com `repair: false` para diagnóstico ou `repair: true` para correção.
+
 ## Próximas etapas
 41–45: expansão do núcleo do ANZUBA OS
 46–52: armazenamento
