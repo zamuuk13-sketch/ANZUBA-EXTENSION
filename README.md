@@ -204,13 +204,17 @@ Adicionadas busca e recomendação local com filtros, pontuação de relevância
 
 Adicionado diagnóstico de integridade do catálogo, detectando IDs inválidos/duplicados, tipos ou estados inválidos, dependências ausentes e referências de compatibilidade quebradas. A IA pode consultar o diagnóstico com `tools.health`.
 
-### Etapa 62/275 — Resolução de executáveis
-
-O Tool Manager agora consegue localizar um executável pelo nome entre as ferramentas instaladas do projeto. A resolução retorna a ferramenta, versão, caminho e argumentos registrados, e está disponível pela API `ANZUBA_TOOLS.resolveExecutable` e pelo comando `tools.executable.resolve`. Ferramentas não instaladas não são consideradas.
-
 ### Etapa 61/275 — Registro de executáveis de ferramentas
 
-O Tool Manager agora mantém os executáveis associados a cada ferramenta, com nome, caminho opcional e argumentos padrão. A IA pode registrar/atualizar executáveis com `tools.executables.set` e consultar o estado com `tools.executables.get`. Os dados permanecem persistentes e isolados por projeto, preparando a integração das ferramentas instaladas com o PATH e o runtime virtual.
+O Tool Manager mantém os executáveis associados a cada ferramenta, com nome, caminho opcional e argumentos padrão. A IA pode registrar/atualizar executáveis com `tools.executables.set` e consultar o estado com `tools.executables.get`. Os dados permanecem persistentes e isolados por projeto.
+
+### Etapa 62/275 — Resolução de executáveis
+
+O Tool Manager consegue localizar um executável pelo nome entre as ferramentas instaladas do projeto. A resolução retorna a ferramenta, versão, caminho e argumentos registrados, e está disponível pela API `ANZUBA_TOOLS.resolveExecutable` e pelo comando `tools.executable.resolve`. Ferramentas não instaladas não são consideradas.
+
+### Etapa 63/275 — Integração dos executáveis com o PATH virtual
+
+Os executáveis de ferramentas instaladas agora são sincronizados com o filesystem e o PATH virtual do projeto. O ANZUBA prepara `/tools/bin`, cria entradas executáveis virtuais com permissões de execução, adiciona esse diretório ao PATH e remove automaticamente os stubs pertencentes a uma ferramenta quando ela é desinstalada. A sincronização manual também está disponível com `ANZUBA_TOOLS.syncExecutables` e `tools.executables.sync`.
 
 ## Próximas etapas
 41–45: expansão do núcleo do ANZUBA OS
