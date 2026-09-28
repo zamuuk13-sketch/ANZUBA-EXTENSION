@@ -1,5 +1,13 @@
 # ANZUBA
 
+### Etapa 34/275 — Shell virtual do ANZUBA OS
+
+O ANZUBA agora possui uma primeira camada real de terminal virtual, executada exclusivamente sobre o sistema de arquivos e os recursos virtuais do projeto. O shell mantém diretório de trabalho e histórico por projeto, possui tokenização básica com aspas e caminhos relativos/absolutos e oferece comandos iniciais como `pwd`, `cd`, `ls`, `cat`, `mkdir`, `touch`, `echo`, `env`, `whoami`, `ps`, `uname`, `clear` e `help`.
+
+A execução é feita por `window.ANZUBA_SHELL` e pela ponte de IA através de `shell.exec`, `shell.history` e `shell.history.clear`. Nesta etapa, o shell não executa comandos do sistema operacional real do dispositivo: todas as operações ficam dentro do ambiente virtual do ANZUBA.
+
+# ANZUBA
+
 ### Etapa 33/275 — Usuários, grupos e permissões
 
 O ANZUBA OS agora possui identidade de usuários e grupos por projeto. Cada ambiente começa com os usuários virtuais `root` e `ai`, grupos correspondentes e dados de home/shell. O núcleo permite criar e remover usuários adicionais, bloquear/desbloquear contas e consultar grupos.
