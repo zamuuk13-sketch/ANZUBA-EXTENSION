@@ -351,3 +351,7 @@ Adicionada a validação dos planos de build gerados pelos alvos. O ANZUBA verif
 ### Etapa 85/275 — Manifesto de build
 
 Adicionada a geração de um manifesto estruturado para builds. O manifesto registra projeto, alvo, plataforma, arquitetura, formato, compilador, perfil, origem, saída e parâmetros de execução, incluindo argumentos e ambiente. A operação `ANZUBA_TOOLS.createBuildManifest` valida o plano antes de gerar o manifesto, e a AI Bridge expõe `build.manifest.create`.
+
+### Etapa 86/275 — Persistência de manifestos de build
+
+Implementado o registro persistente dos manifestos de build por projeto. O ANZUBA agora pode registrar, consultar, listar e remover manifestos, mantendo isolamento entre projetos e limitando o histórico a 100 manifestos por projeto. A AI Bridge expõe `build.manifest.register`, `build.manifest.get`, `build.manifests.list` e `build.manifest.remove`.
