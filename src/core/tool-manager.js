@@ -496,6 +496,22 @@
     const tool = tools[index];
     if (tool.status === "installed") return clone(tool);
 
+    const resolution = await resolveDependencies(toolId, pid);
+    if (!resolution?.ok) throw new Error("Dependências da ferramenta não podem ser resolvidas.");
+    const unresolved = resolution.order
+      .filter(dependencyId => dependencyId !== toolId)
+      .map(dependencyId => tools.find(item => item.id === dependencyId))
+      .filter(Boolean)
+      .filter(dependency => dependency.status !== "installed");
+    if (unresolved.length) {
+      throw new Error("Dependências ainda não instaladas: " + unresolved.map(item => item.id).join(", "));
+    }
+
+    const compatibility = await validateCompatibility(toolId, pid);
+    if (compatibility && !compatibility.ok) {
+      throw new Error("Ferramenta incompatível: " + compatibility.issues.map(issue => issue.type).join(", "));
+    }
+
     tool.status = "installing";
     tool.updatedAt = new Date().toISOString();
     await saveAll(tools, pid);
