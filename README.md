@@ -245,6 +245,12 @@ Adicionada a execução virtual de executáveis instalados. A IA pode usar `ANZU
 246–260: automação
 261–275: UX final
 
+
+### Etapa 66/275 — Registro de runtimes de linguagens
+
+Adicionado o primeiro suporte da camada de linguagens e desenvolvimento. O Tool Manager agora consegue registrar runtimes de linguagem instalados no projeto, associando versão, comando executável, origem e metadados. A IA pode usar `ANZUBA_TOOLS.registerLanguageRuntime` e `ANZUBA_TOOLS.listLanguageRuntimes`, ou os comandos `tools.runtime.register` e `tools.runtime.list`. Os runtimes registrados são sincronizados com o PATH virtual do projeto.
+
+
 ### Etapa 59/275 — Catálogo inteligente de ferramentas
 
 O Tool Manager agora possui busca e recomendação local de ferramentas, com filtros por tipo/status, pontuação por relevância, prioridade para correspondência de nome e limite controlado de resultados. Tudo permanece isolado por projeto.
