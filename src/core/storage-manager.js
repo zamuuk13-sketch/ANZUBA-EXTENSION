@@ -419,6 +419,69 @@
     return true;
   }
 
+  async function integrity(id, repair = false) {
+    const pid = projectId(id);
+    const state = await getState(pid);
+    if (!state) return null;
+
+    const issues = [];
+    const repaired = [];
+
+    if (!state.entries || typeof state.entries !== "object" || Array.isArray(state.entries)) {
+      issues.push("entries inválido");
+      if (repair) {
+        state.entries = {};
+        repaired.push("entries");
+      }
+    }
+
+    if (!state.volumes || typeof state.volumes !== "object" || Array.isArray(state.volumes)) {
+      issues.push("volumes inválido");
+      if (repair) {
+        state.volumes = clone(DEFAULT_STORAGE.volumes);
+        repaired.push("volumes");
+      }
+    }
+
+    if (!state.snapshots || typeof state.snapshots !== "object" || Array.isArray(state.snapshots)) {
+      issues.push("snapshots inválido");
+      if (repair) {
+        state.snapshots = {};
+        repaired.push("snapshots");
+      }
+    }
+
+    const entries = state.entries || {};
+    Object.entries(entries).forEach(([key, entry]) => {
+      if (!entry || typeof entry !== "object" || !Object.prototype.hasOwnProperty.call(entry, "value")) {
+        issues.push(`entrada inválida: ${key}`);
+        if (repair) {
+          delete entries[key];
+          repaired.push(`entry:${key}`);
+        }
+      }
+    });
+
+    const volumes = state.volumes || {};
+    if (!volumes.root || typeof volumes.root !== "object") {
+      issues.push("volume root ausente");
+      if (repair) {
+        volumes.root = clone(DEFAULT_STORAGE.volumes.root);
+        repaired.push("volume:root");
+      }
+    }
+
+    if (repair && repaired.length) await saveState(state, pid);
+
+    return {
+      ok: issues.length === 0,
+      repaired: repaired.length > 0,
+      issues,
+      repairedItems: repaired,
+      projectId: pid
+    };
+  }
+
   async function status(id) {
     const state = await getState(id);
     if (!state) return null;
@@ -460,7 +523,8 @@
     listSnapshots,
     createSnapshot,
     restoreSnapshot,
-    removeSnapshot
+    removeSnapshot,
+    integrity
   };
 
   window.ANZUBA_AI_BRIDGE?.on("storage.get", ({ key, id } = {}) => get(key, id));
@@ -482,6 +546,7 @@
   window.ANZUBA_AI_BRIDGE?.on("storage.snapshot.create", ({ name, id } = {}) => createSnapshot(name, id));
   window.ANZUBA_AI_BRIDGE?.on("storage.snapshot.restore", ({ name, id } = {}) => restoreSnapshot(name, id));
   window.ANZUBA_AI_BRIDGE?.on("storage.snapshot.remove", ({ name, id } = {}) => removeSnapshot(name, id));
+  window.ANZUBA_AI_BRIDGE?.on("storage.integrity", ({ id, repair = false } = {}) => integrity(id, repair));
 
   setTimeout(() => {
     const active = window.ANZUBA_PROJECTS?.getActive?.();
