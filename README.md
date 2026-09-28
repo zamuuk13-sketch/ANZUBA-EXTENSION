@@ -400,3 +400,7 @@ O AI Programmer agora consegue encaminhar uma implementação validada para o Bu
 ### Etapa 99/275 — Execução automática do build
 
 O AI Programmer agora consegue executar o pipeline de build preparado para um projeto. Ele resolve o compilador quando necessário, envia a implementação ao Build System, acompanha o resultado inicial e atualiza o plano para build concluído ou falho. API: `ANZUBA_AI_PROGRAMMER.runProgramBuild`. Bridge: `ai.program.build.run`.
+
+### Etapa 100/275 — Diagnóstico do AI Programmer + auditoria da década
+
+O AI Programmer recebeu `getProgrammerDiagnostics` e o comando Bridge `ai.program.diagnostics`, verificando planos persistidos, isolamento por projeto, etapas, workspaces e estados em execução. Após a implementação, foi realizada a varredura estrutural e a auditoria das etapas 91–100, cobrindo planejamento, requisitos, workspace, scaffolding, geração, escrita, validação, preparação e execução de build. A década 91–100 foi fechada com as correções necessárias encontradas na revisão.
