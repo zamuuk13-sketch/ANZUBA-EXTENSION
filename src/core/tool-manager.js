@@ -745,6 +745,45 @@
     return { projectId: pid, ok: false, status: "failed", reason: "compiler-not-configured" };
   }
 
+  async function validateBuildSource(sourcePath, compilerId, id) {
+    const pid = projectId(id);
+    const path = String(sourcePath || "").trim();
+    const issues = [];
+
+    if (!path || !path.startsWith("/")) issues.push("invalid-source-path");
+
+    let entry = null;
+    if (path && window.ANZUBA_FS?.get) {
+      entry = await window.ANZUBA_FS.get(path, pid).catch(() => null);
+      if (!entry) issues.push("source-not-found");
+      else if (entry.type && entry.type !== "file") issues.push("source-not-file");
+    }
+
+    const language = compilerId ? await get(compilerId, pid) : null;
+    if (!compilerId) issues.push("compiler-not-specified");
+    else if (!language) issues.push("compiler-not-found");
+
+    const compilerValidation = compilerId ? await validateCompiler(compilerId, pid) : null;
+    if (compilerValidation && !compilerValidation.ok) issues.push("compiler-invalid");
+
+    if (compilerValidation?.compiler?.compilerConfig?.sourceExtensions?.length && path) {
+      const lower = path.toLowerCase();
+      const allowed = compilerValidation.compiler.compilerConfig.sourceExtensions
+        .map(ext => String(ext).toLowerCase());
+      if (!allowed.some(ext => lower.endsWith(ext))) issues.push("unsupported-source-extension");
+    }
+
+    return {
+      projectId: pid,
+      ok: issues.length === 0,
+      sourcePath: path,
+      compilerId: compilerId || null,
+      source: entry ? { exists: true, type: entry.type || "file", size: Number(entry.size || 0) } : { exists: false },
+      compiler: compilerValidation,
+      issues
+    };
+  }
+
   async function health(id) {
     const pid = projectId(id);
     const tools = await getAll(pid);
@@ -1581,6 +1620,7 @@
     removeBuildProfile,
     validateBuildProfile,
     buildWithProfile,
+    validateBuildSource,
     syncExecutables,
     executeExecutable
   };
@@ -1617,6 +1657,7 @@
   window.ANZUBA_AI_BRIDGE?.on("build.profile.remove", ({ name, id } = {}) => removeBuildProfile(name, id));
   window.ANZUBA_AI_BRIDGE?.on("build.profile.validate", ({ name, id } = {}) => validateBuildProfile(name, id));
   window.ANZUBA_AI_BRIDGE?.on("build.profile.run", ({ name, sourcePath, options, id } = {}) => buildWithProfile(name, sourcePath, options || {}, id));
+  window.ANZUBA_AI_BRIDGE?.on("build.source.validate", ({ sourcePath, compilerId, id } = {}) => validateBuildSource(sourcePath, compilerId, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executable.run", ({ name, args, cwd, user, id } = {}) => executeExecutable(name, { args, cwd, user }, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.search", ({ query, id } = {}) => catalog(query || {}, id));
