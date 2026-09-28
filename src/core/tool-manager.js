@@ -58,6 +58,49 @@
     };
   }
 
+  function catalog(query = {}, id) {
+    const text = String(query.query || "").trim().toLowerCase();
+    const type = query.type ? String(query.type) : null;
+    const status = query.status ? String(query.status) : null;
+    const limit = Math.min(Math.max(Number(query.limit) || 20, 1), 100);
+    const tools = await getAll(id);
+
+    const scored = tools
+      .filter(tool => !type || tool.type === type)
+      .filter(tool => !status || tool.status === status)
+      .map(tool => {
+        const haystack = [
+          tool.name, tool.description, tool.type, tool.license,
+          tool.sourceType, ...(tool.versions || [])
+        ].join(" ").toLowerCase();
+        let score = text ? (haystack.includes(text) ? 50 : 0) : 10;
+        if (text && tool.name.toLowerCase() === text) score += 100;
+        if (text && tool.name.toLowerCase().startsWith(text)) score += 40;
+        if (tool.status === "installed") score += 10;
+        if (tool.sourceType === "official") score += 5;
+        if (tool.version) score += 2;
+        return { tool, score };
+      })
+      .filter(item => !text || item.score > 0)
+      .sort((a, b) => b.score - a.score || a.tool.name.localeCompare(b.tool.name))
+      .slice(0, limit);
+
+    return {
+      projectId: projectId(id),
+      query: text,
+      count: scored.length,
+      results: scored.map(item => ({ ...clone(item.tool), score: item.score }))
+    };
+  }
+
+  async function recommend(query = {}, id) {
+    const result = await catalog(query, id);
+    return {
+      ...result,
+      recommendations: result.results.slice(0, Math.min(result.results.length, 10))
+    };
+  }
+
   function parseVersion(version) {
     const match = String(version || "").trim().replace(/^v/i, "").match(/^(\\d+)(?:\\.(\\d+))?(?:\\.(\\d+))?(?:-([0-9A-Za-z.-]+))?/);
     if (!match) return null;
@@ -460,9 +503,13 @@
     setCompatibility,
     validateCompatibility,
     compareVersions,
-    satisfiesRange
+    satisfiesRange,
+    catalog,
+    recommend
   };
 
+  window.ANZUBA_AI_BRIDGE?.on("tools.catalog.search", ({ query, id } = {}) => catalog(query || {}, id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.catalog.recommend", ({ query, id } = {}) => recommend(query || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.compatibility.set", ({ toolId, compatibility, id } = {}) => setCompatibility(toolId, compatibility || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.compatibility.validate", ({ toolId, id } = {}) => validateCompatibility(toolId, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.dependencies.resolve", ({ toolId, id } = {}) => resolveDependencies(toolId, id));
