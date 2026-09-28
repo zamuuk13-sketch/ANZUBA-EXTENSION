@@ -45,9 +45,148 @@
       path: tool.path ? String(tool.path).slice(0, 512) : null,
       status,
       dependencies: Array.isArray(tool.dependencies) ? tool.dependencies.map(String).slice(0, 50) : [],
+      compatibility: {
+        requires: Array.isArray(tool.compatibility?.requires) ? tool.compatibility.requires.map(item => ({
+          toolId: String(item?.toolId || "").trim(),
+          range: String(item?.range || "").trim().slice(0, 64)
+        })).filter(item => item.toolId && item.range).slice(0, 50) : [],
+        conflicts: Array.isArray(tool.compatibility?.conflicts) ? [...new Set(tool.compatibility.conflicts.map(String).map(item => item.trim()).filter(Boolean))].slice(0, 50) : []
+      },
       installedAt: tool.installedAt || null,
       createdAt: tool.createdAt || now,
       updatedAt: now
+    };
+  }
+
+  function parseVersion(version) {
+    const match = String(version || "").trim().replace(/^v/i, "").match(/^(\\d+)(?:\\.(\\d+))?(?:\\.(\\d+))?(?:-([0-9A-Za-z.-]+))?/);
+    if (!match) return null;
+    return {
+      major: Number(match[1]),
+      minor: Number(match[2] || 0),
+      patch: Number(match[3] || 0),
+      prerelease: match[4] || ""
+    };
+  }
+
+  function compareVersions(a, b) {
+    const left = parseVersion(a);
+    const right = parseVersion(b);
+    if (!left || !right) return null;
+    for (const key of ["major", "minor", "patch"]) {
+      if (left[key] !== right[key]) return left[key] - right[key];
+    }
+    if (!left.prerelease && right.prerelease) return 1;
+    if (left.prerelease && !right.prerelease) return -1;
+    return left.prerelease.localeCompare(right.prerelease);
+  }
+
+  function satisfiesRange(version, range) {
+    if (!range) return true;
+    const value = String(range).trim();
+    const parsed = parseVersion(version);
+    if (!parsed) return false;
+
+    const exact = value.match(/^=?v?(\\d+(?:\\.\\d+)?(?:\\.\\d+)?(?:-[0-9A-Za-z.-]+)?)$/);
+    if (exact) {
+      const normalized = exact[1];
+      const parts = normalized.replace(/^v/i, "").split("-");
+      const nums = parts[0].split(".").map(Number);
+      if (nums.length === 1) return parsed.major === nums[0];
+      if (nums.length === 2) return parsed.major === nums[0] && parsed.minor === nums[1];
+      return compareVersions(version, normalized) === 0;
+    }
+
+    const comparator = value.match(/^(>=|<=|>|<)\\s*v?(\\d+(?:\\.\\d+){0,2})$/);
+    if (comparator) {
+      const result = compareVersions(version, comparator[2]);
+      if (result === null) return false;
+      return {
+        ">=": result >= 0,
+        "<=": result <= 0,
+        ">": result > 0,
+        "<": result < 0
+      }[comparator[1]];
+    }
+
+    return false;
+  }
+
+  async function setCompatibility(toolId, compatibility = {}, id) {
+    const pid = projectId(id);
+    const tools = await getAll(pid);
+    const index = tools.findIndex(tool => tool.id === toolId);
+    if (index < 0) return null;
+    if (!compatibility || typeof compatibility !== "object" || Array.isArray(compatibility)) {
+      throw new Error("Compatibilidade inválida.");
+    }
+
+    const requires = Array.isArray(compatibility.requires) ? compatibility.requires : [];
+    const conflicts = Array.isArray(compatibility.conflicts) ? compatibility.conflicts : [];
+    if (requires.length > 50 || conflicts.length > 50) throw new Error("Limite de compatibilidade excedido.");
+
+    const normalizedRequires = requires.map(item => ({
+      toolId: String(item?.toolId || "").trim(),
+      range: String(item?.range || "").trim().slice(0, 64)
+    })).filter(item => item.toolId && item.range);
+
+    const normalizedConflicts = [...new Set(conflicts.map(String).map(item => item.trim()).filter(Boolean))];
+    const missing = normalizedRequires.filter(item => !tools.some(tool => tool.id === item.toolId)).map(item => item.toolId)
+      .concat(normalizedConflicts.filter(dep => !tools.some(tool => tool.id === dep)));
+
+    if (missing.length) throw new Error("Ferramenta de compatibilidade não encontrada: " + [...new Set(missing)].join(", "));
+    if (normalizedRequires.some(item => item.toolId === toolId) || normalizedConflicts.includes(toolId)) {
+      throw new Error("Uma ferramenta não pode declarar incompatibilidade com ela mesma.");
+    }
+
+    tools[index] = normalize({
+      ...tools[index],
+      compatibility: {
+        requires: normalizedRequires,
+        conflicts: normalizedConflicts
+      },
+      id: tools[index].id
+    });
+    await saveAll(tools, pid);
+    return clone(tools[index]);
+  }
+
+  async function validateCompatibility(toolId, id) {
+    const pid = projectId(id);
+    const tools = await getAll(pid);
+    const tool = tools.find(item => item.id === toolId);
+    if (!tool) return null;
+    const compatibility = tool.compatibility || { requires: [], conflicts: [] };
+    const issues = [];
+
+    for (const requirement of compatibility.requires || []) {
+      const target = tools.find(item => item.id === requirement.toolId);
+      if (!target) {
+        issues.push({ type: "missing", toolId: requirement.toolId, range: requirement.range });
+        continue;
+      }
+      if (!target.version || !satisfiesRange(target.version, requirement.range)) {
+        issues.push({
+          type: "version",
+          toolId: target.id,
+          required: requirement.range,
+          found: target.version || null
+        });
+      }
+    }
+
+    for (const conflictId of compatibility.conflicts || []) {
+      const target = tools.find(item => item.id === conflictId);
+      if (target && target.status === "installed") {
+        issues.push({ type: "conflict", toolId: target.id, version: target.version || null });
+      }
+    }
+
+    return {
+      projectId: pid,
+      toolId: tool.id,
+      ok: issues.length === 0,
+      issues
     };
   }
 
@@ -320,6 +459,8 @@
     uninstall
   };
 
+  window.ANZUBA_AI_BRIDGE?.on("tools.compatibility.set", ({ toolId, compatibility, id } = {}) => setCompatibility(toolId, compatibility || {}, id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.compatibility.validate", ({ toolId, id } = {}) => validateCompatibility(toolId, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.dependencies.resolve", ({ toolId, id } = {}) => resolveDependencies(toolId, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.install.withDependencies", ({ toolId, id } = {}) => installWithDependencies(id, toolId));
   window.ANZUBA_AI_BRIDGE?.on("tools.dependencies.set", ({ toolId, dependencies, id } = {}) => setDependencies(toolId, dependencies || [], id));
