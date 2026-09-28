@@ -815,6 +815,42 @@
     };
   }
 
+  async function runBuildPipeline(sourcePath, compilerId, options = {}, id) {
+    const pid = projectId(id);
+    const prepared = await prepareBuild(sourcePath, compilerId, options, pid);
+    if (!prepared.ok) return { ...prepared, status: "failed" };
+
+    const job = await createCompileJob(compilerId, sourcePath, {
+      ...options,
+      args: prepared.args,
+      output: prepared.output,
+      cwd: prepared.cwd,
+      user: prepared.user,
+      environment: prepared.environment
+    }, pid);
+
+    const result = {
+      projectId: pid,
+      ok: job.status === "queued",
+      status: job.status,
+      prepared,
+      job
+    };
+
+    if (!result.ok) return result;
+
+    if (prepared.output) {
+      const artifact = await registerBuildArtifact(job.id, {
+        path: prepared.output,
+        type: "build",
+        status: "available"
+      }, pid);
+      result.artifact = artifact;
+    }
+
+    return result;
+  }
+
   async function health(id) {
     const pid = projectId(id);
     const tools = await getAll(pid);
@@ -1653,6 +1689,7 @@
     buildWithProfile,
     validateBuildSource,
     prepareBuild,
+    runBuildPipeline,
     syncExecutables,
     executeExecutable
   };
@@ -1691,6 +1728,7 @@
   window.ANZUBA_AI_BRIDGE?.on("build.profile.run", ({ name, sourcePath, options, id } = {}) => buildWithProfile(name, sourcePath, options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("build.source.validate", ({ sourcePath, compilerId, id } = {}) => validateBuildSource(sourcePath, compilerId, id));
   window.ANZUBA_AI_BRIDGE?.on("build.prepare", ({ sourcePath, compilerId, options, id } = {}) => prepareBuild(sourcePath, compilerId, options || {}, id));
+  window.ANZUBA_AI_BRIDGE?.on("build.run", ({ sourcePath, compilerId, options, id } = {}) => runBuildPipeline(sourcePath, compilerId, options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executable.run", ({ name, args, cwd, user, id } = {}) => executeExecutable(name, { args, cwd, user }, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.search", ({ query, id } = {}) => catalog(query || {}, id));
