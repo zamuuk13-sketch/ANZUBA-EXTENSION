@@ -295,6 +295,11 @@ A detecção de linguagem foi ampliada além da extensão do arquivo. O ANZUBA a
 
 ### Etapa 78/275 — Validação de arquivos de build
 
+
+### Etapa 79/275 — Preparação de build
+
+Adicionada a preparação de builds virtuais. O ANZUBA valida a origem e o compilador, combina argumentos padrão e personalizados, define saída, diretório, usuário e ambiente e retorna um plano de build pronto para execução. API: `ANZUBA_TOOLS.prepareBuild`. Bridge: `build.prepare`.
+
 Adicionada a validação dos arquivos de origem antes de um build. O ANZUBA verifica caminho, existência no filesystem virtual, tipo de arquivo, compilador associado, validade do compilador e compatibilidade da extensão com as extensões de entrada declaradas pelo compilador. API: `ANZUBA_TOOLS.validateBuildSource`. Bridge: `build.source.validate`.
 
 Adicionada a execução virtual de builds usando perfis persistentes. A IA pode selecionar um perfil, validar sua configuração, combinar argumentos/opções específicas e criar automaticamente um job de compilação associado ao compilador configurado. API: `ANZUBA_TOOLS.buildWithProfile`. Bridge: `build.profile.run`.
