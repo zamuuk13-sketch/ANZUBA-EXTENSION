@@ -45,7 +45,11 @@
       path: tool.path ? String(tool.path).slice(0, 512) : null,
       status,
       dependencies: Array.isArray(tool.dependencies) ? tool.dependencies.map(String).slice(0, 50) : [],
-      executables: Array.isArray(tool.executables) ? tool.executables.map(item => {\n        if (typeof item === "string") return { name: String(item).trim(), path: null, args: [] };\n        return { name: String(item?.name || "").trim(), path: item?.path ? String(item.path).trim() : null, args: Array.isArray(item?.args) ? item.args.map(String).slice(0, 20) : [] };\n      }).filter(item => /^[A-Za-z0-9._-]{1,80}$/.test(item.name)).slice(0, 50) : [],\n      compatibility: {
+      executables: Array.isArray(tool.executables) ? tool.executables.map(item => {
+        if (typeof item === "string") return { name: String(item).trim(), path: null, args: [] };
+        return { name: String(item?.name || "").trim(), path: item?.path ? String(item.path).trim() : null, args: Array.isArray(item?.args) ? item.args.map(String).slice(0, 20) : [] };
+      }).filter(item => /^[A-Za-z0-9._-]{1,80}$/.test(item.name)).slice(0, 50) : [],
+      compatibility: {
         requires: Array.isArray(tool.compatibility?.requires) ? tool.compatibility.requires.map(item => ({
           toolId: String(item?.toolId || "").trim(),
           range: String(item?.range || "").trim().slice(0, 64)
@@ -615,7 +619,9 @@
     health
   };
 
-  window.ANZUBA_AI_BRIDGE?.on("tools.executables.set", ({ toolId, executables, id } = {}) => setExecutables(toolId, executables || [], id));\n  window.ANZUBA_AI_BRIDGE?.on("tools.executables.get", ({ toolId, id } = {}) => getExecutables(toolId, id));\n  window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.executables.set", ({ toolId, executables, id } = {}) => setExecutables(toolId, executables || [], id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.executables.get", ({ toolId, id } = {}) => getExecutables(toolId, id));
+  window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.search", ({ query, id } = {}) => catalog(query || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.recommend", ({ query, id } = {}) => recommend(query || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.compatibility.set", ({ toolId, compatibility, id } = {}) => setCompatibility(toolId, compatibility || {}, id));
