@@ -380,3 +380,7 @@ O AI Programmer agora pode preparar o workspace virtual de um plano de projeto. 
 ### Etapa 94/275 — Scaffold inicial do projeto
 
 O AI Programmer agora consegue criar a estrutura inicial de código dentro do workspace do plano. O scaffold escolhe um arquivo de entrada conforme a linguagem detectada, aceita arquivos adicionais fornecidos pela IA, limita o tamanho/quantidade dos arquivos e impede escrita fora do workspace do projeto. O comando Bridge `ai.program.scaffold` executa essa etapa.
+
+### Etapa 95/275 — Geração da implementação do projeto
+
+O AI Programmer agora consegue transformar o plano e a linguagem detectada em arquivos iniciais de implementação e testes dentro do workspace virtual. A geração permanece isolada por projeto, aceita arquivos fornecidos pela IA, protege o workspace contra escrita fora da raiz e pode atualizar o estado da etapa de implementação. A operação está disponível pela API `ANZUBA_AI_PROGRAMMER.generateProgramFiles` e pelo comando Bridge `ai.program.generate`.
