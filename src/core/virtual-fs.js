@@ -223,7 +223,7 @@
 
   window.addEventListener("anzuba:project-changed", e => e.detail?.id && getFs(e.detail.id));
 
-  window.ANZUBA_FS = { directories: [...DEFAULT_DIRECTORIES], normalize, exists, mkdir, writeFile, readFile, list, remove, get: getFs };
+  window.ANZUBA_FS = { directories: [...DEFAULT_DIRECTORIES], normalize, exists, mkdir, writeFile, readFile, list, remove, get: getFs, metadata: metadataFor, chmod, chown, access };
 
   setTimeout(() => {
     const active = window.ANZUBA_PROJECTS?.getActive();
