@@ -33,6 +33,7 @@
         "src/core/resource-manager.js",
         "src/core/environment-manager.js",
         "src/core/os-manager.js",
+        "src/core/cpu-manager.js",
         "src/core/process-manager.js",
         "src/core/user-manager.js",
         "src/core/shell-manager.js",
