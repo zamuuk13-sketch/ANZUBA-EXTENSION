@@ -359,3 +359,6 @@ Implementado o registro persistente dos manifestos de build por projeto. O ANZUB
 ### Etapa 87/275 — Validação de manifestos de build
 
 Adicionada a validação estrutural dos manifestos de build. O ANZUBA verifica formato, versão, projeto, alvo, compilador, origem, saída e parâmetros de execução, removendo problemas duplicados da lista de diagnóstico. A AI Bridge expõe `build.manifest.validate`.
+### Etapa 88/275 — Execução de manifestos de build
+
+Adicionada a execução controlada de manifestos de build. O ANZUBA valida o manifesto, confirma o compilador e o arquivo de origem no projeto, cria o job de compilação no runtime virtual e registra o artefato como pendente quando há uma saída definida. A operação está disponível pela API `ANZUBA_TOOLS.executeBuildManifest` e pelo comando Bridge `build.manifest.execute`. A execução continua restrita ao ambiente virtual do ANZUBA OS.
