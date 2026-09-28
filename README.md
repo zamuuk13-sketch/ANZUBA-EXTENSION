@@ -347,3 +347,7 @@ Adicionada a geração de um plano de build a partir de um alvo resolvido. A IA 
 ### Etapa 84/275 — Validação do plano de build
 
 Adicionada a validação dos planos de build gerados pelos alvos. O ANZUBA verifica alvo, compilador, arquivo de origem, saída, diretório de trabalho, plataforma, arquitetura e formato antes de permitir que o plano avance. A IA pode usar `ANZUBA_TOOLS.validateBuildPlan` ou o comando Bridge `build.plan.validate`. A validação permanece isolada por projeto e retorna uma lista consolidada de problemas encontrados.
+
+### Etapa 85/275 — Manifesto de build
+
+Adicionada a geração de um manifesto estruturado para builds. O manifesto registra projeto, alvo, plataforma, arquitetura, formato, compilador, perfil, origem, saída e parâmetros de execução, incluindo argumentos e ambiente. A operação `ANZUBA_TOOLS.createBuildManifest` valida o plano antes de gerar o manifesto, e a AI Bridge expõe `build.manifest.create`.
