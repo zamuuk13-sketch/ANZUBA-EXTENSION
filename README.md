@@ -180,6 +180,10 @@ Criado o núcleo do gerenciador de ferramentas virtual por projeto. Ele mantém 
 
 O gerenciador de ferramentas agora registra tipo de fonte, página oficial, licença e versões disponíveis. A IA pode atualizar metadados com `tools.metadata.update` e consultar as fontes com `tools.sources.get`, mantendo essas informações isoladas por projeto.
 
+### Etapa 55/275 — Gerenciamento de versões
+
+O Tool Manager agora mantém múltiplas versões por ferramenta, permite adicionar/remover versões do catálogo e selecionar a versão ativa. A IA pode consultar e alterar versões com `tools.versions.get`, `tools.version.add`, `tools.version.remove` e `tools.version.select`.
+
 ## Próximas etapas
 41–45: expansão do núcleo do ANZUBA OS
 46–52: armazenamento
