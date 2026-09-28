@@ -420,3 +420,7 @@ A Game Engine agora possui posição, rotação e escala 3D normalizadas para en
 ### Etapa 103/275 — Cena ativa
 
 A Game Engine agora permite selecionar e desativar a cena ativa do projeto. A seleção é persistente na configuração da engine, validada contra as cenas existentes e exposta pelo AI Bridge com `game.scene.activate` e `game.scene.deactivate`.
+
+### Etapa 104/275 — Componentes de entidades
+
+A Game Engine agora permite substituir e consultar o conjunto de componentes de uma entidade. Os dados são normalizados, persistidos por projeto e expostos pelo AI Bridge através de `game.entity.components.set` e `game.entity.components.get`.
