@@ -178,6 +178,65 @@
     return { projectId: pid, ok: true, plan: clone(plans[index]), workspace: { root, directories, created, existing } };
   }
 
+  async function scaffoldProgram(planId, options = {}, id) {
+    const pid = projectId(id);
+    const plan = await getProgramPlan(planId, pid);
+    if (!plan) return { projectId: pid, ok: false, reason: "plan-not-found" };
+
+    const workspace = plan.workspace?.root;
+    if (!workspace) return { projectId: pid, ok: false, reason: "workspace-not-prepared" };
+
+    const fs = window.ANZUBA_FS;
+    if (!fs?.writeFile || !fs?.exists) return { projectId: pid, ok: false, reason: "filesystem-unavailable" };
+
+    const language = plan.task?.language || "unknown";
+    const defaults = language === "javascript"
+      ? { path: workspace + "src/main.js", content: "// ANZUBA project entry point\\n" }
+      : language === "typescript"
+        ? { path: workspace + "src/main.ts", content: "// ANZUBA project entry point\\n" }
+        : language === "python"
+          ? { path: workspace + "src/main.py", content: "# ANZUBA project entry point\\n" }
+          : language === "cpp"
+            ? { path: workspace + "src/main.cpp", content: "// ANZUBA project entry point\\n#include <iostream>\\nint main() { return 0; }\\n" }
+            : { path: workspace + "src/README.md", content: "# ANZUBA Project\\n\\nEntry point will be generated here.\\n" };
+
+    const requestedPath = String(options.entryPath || defaults.path).trim().replace(/\\\\/g, "/");
+    const root = workspace.endsWith("/") ? workspace : workspace + "/";
+    if (!requestedPath.startsWith(root) || requestedPath.includes("..")) {
+      return { projectId: pid, ok: false, reason: "invalid-entry-path" };
+    }
+
+    const files = Array.isArray(options.files) ? options.files.slice(0, 50) : [];
+    const generated = [];
+    const skipped = [];
+    const candidates = files.length ? files : [defaults];
+
+    for (const item of candidates) {
+      const path = String(item?.path || "").trim().replace(/\\\\/g, "/");
+      const content = String(item?.content ?? "");
+      if (!path.startsWith(root) || path.includes("..") || !content.length && path !== requestedPath) continue;
+      if (await fs.exists(path, pid) && !options.overwrite) {
+        skipped.push(path);
+        continue;
+      }
+      if (!(await fs.writeFile(path, content.slice(0, 200000), pid, { username: "ai" }))) {
+        return { projectId: pid, ok: false, reason: "file-write-failed", path, generated, skipped };
+      }
+      generated.push(path);
+    }
+
+    return {
+      projectId: pid,
+      ok: true,
+      planId: plan.id,
+      language,
+      workspace: root,
+      generated,
+      skipped,
+      entryPath: requestedPath
+    };
+  }
+
   async function getProgramPlan(planId, id) {
     const plans = await getPlans(id);
     return plans.find(plan => plan.id === String(planId || "").trim()) || null;
@@ -216,6 +275,7 @@
   window.ANZUBA_AI_PROGRAMMER = {
     createProgramPlan,
     getProgramPlan,
+    scaffoldProgram,
     prepareProgramWorkspace,
     updateProgramPlan,
     listProgramPlans,
@@ -233,6 +293,9 @@
     createProgramPlan(prompt, options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("ai.program.plan.get", ({ planId, id } = {}) =>
     getProgramPlan(planId, id));
+  window.ANZUBA_AI_BRIDGE?.on("ai.program.scaffold", ({ planId, options, id } = {}) =>
+    scaffoldProgram(planId, options || {}, id));
+
   window.ANZUBA_AI_BRIDGE?.on("ai.program.workspace.prepare", ({ planId, id } = {}) =>
     prepareProgramWorkspace(planId, id));
 
