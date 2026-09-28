@@ -499,6 +499,74 @@
     };
   }
 
+  async function reconcile(id, repair = false) {
+    const pid = projectId(id);
+    const state = await getState(pid);
+    if (!state) return null;
+
+    const issues = [];
+    const repaired = [];
+    let changed = false;
+
+    if (!state.entries || typeof state.entries !== "object" || Array.isArray(state.entries)) {
+      issues.push("entries inválido");
+      if (repair) {
+        state.entries = {};
+        repaired.push("entries");
+        changed = true;
+      }
+    }
+
+    Object.entries(state.entries || {}).forEach(([key, entry]) => {
+      if (!entry || typeof entry !== "object" || !Object.prototype.hasOwnProperty.call(entry, "value")) {
+        issues.push(`entrada inválida: ${key}`);
+        if (repair) {
+          delete state.entries[key];
+          repaired.push(`entry:${key}`);
+          changed = true;
+          return;
+        }
+      }
+
+      if (entry && typeof entry === "object") {
+        const actualBytes = estimateBytes(entry.value);
+        if (Number(entry.sizeBytes) !== actualBytes) {
+          issues.push(`tamanho incorreto: ${key}`);
+          if (repair) {
+            entry.sizeBytes = actualBytes;
+            repaired.push(`size:${key}`);
+            changed = true;
+          }
+        }
+      }
+    });
+
+    const usedBytes = Object.values(state.entries || {})
+      .reduce((sum, entry) => sum + Number(entry?.sizeBytes || 0), 0);
+    const quotaBytes = state.quotaMB * 1024 * 1024;
+
+    if (usedBytes > quotaBytes) {
+      issues.push("armazenamento acima da quota");
+    }
+
+    if (repair && changed) {
+      await saveState(state, pid);
+      window.dispatchEvent(new CustomEvent("anzuba:storage-reconciled", {
+        detail: { projectId: pid, repaired: repaired.length }
+      }));
+    }
+
+    return {
+      ok: issues.length === 0,
+      repaired: repaired.length > 0,
+      issues,
+      repairedItems: repaired,
+      projectId: pid,
+      usedBytes,
+      quotaBytes
+    };
+  }
+
   async function exportStorage(id) {
     const pid = projectId(id);
     const state = await getState(pid);
@@ -647,6 +715,7 @@
     restoreSnapshot,
     removeSnapshot,
     integrity,
+    reconcile,
     exportStorage,
     importStorage
   };
@@ -671,6 +740,7 @@
   window.ANZUBA_AI_BRIDGE?.on("storage.snapshot.restore", ({ name, id } = {}) => restoreSnapshot(name, id));
   window.ANZUBA_AI_BRIDGE?.on("storage.snapshot.remove", ({ name, id } = {}) => removeSnapshot(name, id));
   window.ANZUBA_AI_BRIDGE?.on("storage.integrity", ({ id, repair = false } = {}) => integrity(id, repair));
+  window.ANZUBA_AI_BRIDGE?.on("storage.reconcile", ({ id, repair = false } = {}) => reconcile(id, repair));
   window.ANZUBA_AI_BRIDGE?.on("storage.export", ({ id } = {}) => exportStorage(id));
   window.ANZUBA_AI_BRIDGE?.on("storage.import", ({ payload, options, id } = {}) => importStorage(payload, options, id));
 
