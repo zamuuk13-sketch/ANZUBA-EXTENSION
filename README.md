@@ -128,6 +128,10 @@ Auditoria completa, correções de integração/isolamento e diagnóstico integr
 
 Adicionado o gerenciador de CPU virtual do ANZUBA OS. Cada projeto possui seu próprio estado de CPU, com arquitetura, modelo, quantidade de núcleos, frequência, scheduler, quantum e utilização. A IA pode consultar o estado com `cpu.status`, alterar a quantidade de núcleos com `cpu.cores.set` e recalcular a utilização virtual com `cpu.tick`. O recurso é persistente e isolado por projeto.
 
+### Etapa 42/275 — Memória virtual
+
+Gerenciador de RAM virtual persistente e isolado por projeto, com total, uso, memória livre e alocações vinculadas a processos. Inclui os comandos `memory.status`, `memory.allocate`, `memory.free`, `memory.freeProcess`, `memory.total.set` e `memory.sync`. A memória vinculada a processos encerrados é liberada automaticamente.
+
 ## Próximas etapas
 41–45: expansão do núcleo do ANZUBA OS
 46–52: armazenamento
