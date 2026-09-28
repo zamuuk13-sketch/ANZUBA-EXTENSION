@@ -505,6 +505,105 @@
     return null;
   }
 
+  async function syncExecutables(id) {
+    const pid = projectId(id);
+    const tools = await getAll(pid);
+    if (!pid || !window.ANZUBA_FS || !window.ANZUBA_ENV) return null;
+
+    const binDir = "/tools/bin";
+    const binExists = await window.ANZUBA_FS.exists(binDir, pid);
+    if (!binExists) {
+      const created = await window.ANZUBA_FS.mkdir(binDir, pid, { username: "root", mode: "755" });
+      if (!created && !(await window.ANZUBA_FS.exists(binDir, pid))) {
+        throw new Error("Não foi possível preparar o diretório virtual de executáveis.");
+      }
+    }
+
+    const synced = [];
+    const skipped = [];
+    const expected = new Set();
+
+    for (const tool of tools) {
+      if (tool.status !== "installed") continue;
+      for (const executable of tool.executables || []) {
+        const name = String(executable?.name || "").trim();
+        if (!name) continue;
+
+        const rawPath = String(executable?.path || "").trim();
+        const path = rawPath && rawPath.startsWith("/")
+          ? window.ANZUBA_FS.normalize(rawPath)
+          : "/tools/bin/" + name;
+        const existing = await window.ANZUBA_FS.get(pid);
+        const item = existing?.[path];
+
+        expected.add(path);
+
+        if (item && item.type !== "file") {
+          skipped.push({ name, path, toolId: tool.id, reason: "path-not-file" });
+          continue;
+        }
+
+        if (item && item.anzubaToolId && item.anzubaToolId !== tool.id) {
+          skipped.push({ name, path, toolId: tool.id, reason: "path-owned" });
+          continue;
+        }
+
+        const marker = JSON.stringify({
+          type: "anzuba-executable",
+          toolId: tool.id,
+          toolName: tool.name,
+          version: tool.version || null,
+          executable: name,
+          args: Array.isArray(executable.args) ? executable.args : []
+        });
+
+        const written = await window.ANZUBA_FS.writeFile(path, marker, pid, {
+          username: "root",
+          mode: "755"
+        });
+        if (!written) {
+          skipped.push({ name, path, toolId: tool.id, reason: "write-failed" });
+          continue;
+        }
+
+        const fs = await window.ANZUBA_FS.get(pid);
+        if (fs?.[path]) {
+          fs[path].anzubaToolId = tool.id;
+          fs[path].anzubaExecutable = name;
+          fs[path].mode = "755";
+          await window.ANZUBA_PROJECTS.setData({ filesystem: fs }, pid);
+        }
+
+        synced.push({ name, path, toolId: tool.id });
+      }
+    }
+
+    await window.ANZUBA_ENV.addPath(binDir, pid);
+
+    return {
+      projectId: pid,
+      path: binDir,
+      synced,
+      skipped
+    };
+  }
+
+  async function removeExecutableStubs(id, toolId) {
+    const pid = projectId(id);
+    if (!pid || !window.ANZUBA_FS) return false;
+    const fs = await window.ANZUBA_FS.get(pid);
+    if (!fs) return false;
+
+    let changed = false;
+    for (const [path, item] of Object.entries(fs)) {
+      if (item?.type === "file" && item.anzubaToolId === toolId) {
+        const removed = await window.ANZUBA_FS.remove(path, pid, { username: "root" });
+        changed = removed || changed;
+      }
+    }
+    return changed;
+  }
+
   async function updateMetadata(toolId, metadata = {}, id) {
     const pid = projectId(id);
     const tools = await getAll(pid);
