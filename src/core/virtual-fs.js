@@ -18,9 +18,41 @@
     return value === "/" ? "/" : value + (value.endsWith("/") ? "" : "/");
   };
 
+  const DEFAULT_OWNERS = {
+    "/": ["root", "root", "755"],
+    "/home/": ["root", "root", "755"],
+    "/home/ai/": ["ai", "ai", "700"],
+    "/projects/": ["ai", "ai", "775"],
+    "/tools/": ["root", "root", "755"],
+    "/usr/": ["root", "root", "755"],
+    "/bin/": ["root", "root", "755"],
+    "/tmp/": ["root", "root", "777"],
+    "/etc/": ["root", "root", "755"],
+    "/workspace/": ["ai", "ai", "775"]
+  };
+
+  const metadata = path => {
+    const key = dir(path);
+    const [owner, group, mode] = DEFAULT_OWNERS[key] || ["ai", "ai", "664"];
+    return { owner, group, mode };
+  };
+
   const empty = () => Object.fromEntries(
-    DEFAULT_DIRECTORIES.map(path => [dir(path), { type: "directory", createdAt: new Date().toISOString() }])
+    DEFAULT_DIRECTORIES.map(path => [dir(path), {
+      type: "directory",
+      createdAt: new Date().toISOString(),
+      ...metadata(path)
+    }])
   );
+
+  function access(item, username, requested) {
+    if (!item || !window.ANZUBA_USERS?.checkAccess) return true;
+    return window.ANZUBA_USERS.checkAccess({
+      owner: item.owner || "root",
+      group: item.group || "root",
+      mode: item.mode || "755"
+    }, username || "ai", requested);
+  }
 
   async function getFs(projectId) {
     const id = projectId || window.ANZUBA_PROJECTS?.getActive()?.id;
@@ -31,10 +63,10 @@
       data.filesystem = empty();
       await window.ANZUBA_PROJECTS.setData({ filesystem: data.filesystem }, id);
     }
-    return data.filesystem;
+    for (const [key, item] of Object.entries(data.filesystem)) {\n      if (item && typeof item === "object" && !item.owner) Object.assign(item, metadata(key));\n    }\n    return data.filesystem;
   }
 
-  async function mkdir(path, projectId) {
+  async function mkdir(path, projectId, options = {}) {
     const id = projectId || window.ANZUBA_PROJECTS?.getActive()?.id;
     const fs = await getFs(id);
     if (!fs) return false;
@@ -43,7 +75,7 @@
     return true;
   }
 
-  async function writeFile(path, content, projectId) {
+  async function writeFile(path, content, projectId, options = {}) {
     const id = projectId || window.ANZUBA_PROJECTS?.getActive()?.id;
     const fs = await getFs(id);
     if (!fs) return false;
@@ -53,13 +85,13 @@
     return true;
   }
 
-  async function readFile(path, projectId) {
+  async function readFile(path, projectId, options = {}) {
     const fs = await getFs(projectId);
     const item = fs?.[normalize(path)];
     return item?.type === "file" ? item.content : null;
   }
 
-  async function list(path = "/", projectId) {
+  async function list(path = "/", projectId, options = {}) {
     const fs = await getFs(projectId);
     if (!fs) return [];
     const parent = dir(path);
@@ -76,7 +108,7 @@
     return [...result.values()].sort((a,b) => a.name.localeCompare(b.name));
   }
 
-  async function remove(path, projectId) {
+  async function remove(path, projectId, options = {}) {
     const id = projectId || window.ANZUBA_PROJECTS?.getActive()?.id;
     const fs = await getFs(id);
     if (!fs) return false;
