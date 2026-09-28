@@ -404,6 +404,65 @@
     };
   }
 
+  async function compileSource(compilerId, sourcePath, options = {}, id) {
+    const pid = projectId(id);
+    const source = String(sourcePath || "").trim();
+    if (!source) {
+      return { projectId: pid, ok: false, exitCode: 2, reason: "source-missing", process: null, compiler: null };
+    }
+
+    const validation = await validateCompiler(compilerId, pid);
+    if (!validation.ok) {
+      return {
+        projectId: pid,
+        ok: false,
+        exitCode: 126,
+        reason: "compiler-invalid",
+        process: null,
+        compiler: validation.compiler || null,
+        validation
+      };
+    }
+
+    const compiler = validation.compiler;
+    const config = compiler.compilerConfig || {};
+    const output = String(options.output || "").trim() ||
+      source.replace(/\\.[^./\\]+$/, config.outputExtension || ".out");
+    const args = [
+      ...(Array.isArray(config.defaultArgs) ? config.defaultArgs.map(String) : []),
+      source
+    ];
+    if (output) args.push("-o", output);
+    if (Array.isArray(options.args)) args.push(...options.args.map(String).slice(0, 30));
+
+    const user = String(options.user || "ai").trim() || "ai";
+    const cwd = String(options.cwd || compiler.runtimeConfig?.workingDirectory || "/workspace").trim() || "/workspace";
+
+    if (!window.ANZUBA_PROCESSES?.spawn) {
+      return { projectId: pid, ok: false, exitCode: 125, reason: "process-runtime-unavailable", process: null, compiler: clone(compiler) };
+    }
+
+    const process = await window.ANZUBA_PROCESSES.spawn({
+      name: `compile:${compiler.name}`,
+      command: compiler.executables?.[0]?.name || compiler.name,
+      args,
+      user,
+      cwd
+    }, pid);
+
+    return {
+      projectId: pid,
+      ok: true,
+      exitCode: null,
+      state: "queued",
+      process,
+      compiler: clone(compiler),
+      source,
+      output,
+      args
+    };
+  }
+
   async function health(id) {
     const pid = projectId(id);
     const tools = await getAll(pid);
@@ -1222,6 +1281,7 @@
     listCompilers,
     findCompilerForLanguage,
     validateCompiler,
+    compileSource,
     syncExecutables,
     executeExecutable
   };
@@ -1242,6 +1302,7 @@
   window.ANZUBA_AI_BRIDGE?.on("compiler.list", ({ languageId, id } = {}) => listCompilers(languageId, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.find", ({ languageId, id } = {}) => findCompilerForLanguage(languageId, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.validate", ({ compilerId, id } = {}) => validateCompiler(compilerId, id));
+  window.ANZUBA_AI_BRIDGE?.on("compiler.compile", ({ compilerId, sourcePath, options, id } = {}) => compileSource(compilerId, sourcePath, options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executable.run", ({ name, args, cwd, user, id } = {}) => executeExecutable(name, { args, cwd, user }, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.search", ({ query, id } = {}) => catalog(query || {}, id));
