@@ -352,9 +352,15 @@
       updatedAt: now
     };
     if (options.parentId !== undefined) {
+      const nextParentId = String(options.parentId || "").trim() || null;
+      if (nextParentId) {
+        const parent = scene.entities.find(item => item.id === nextParentId);
+        if (!parent) return { projectId: pid, ok: false, reason: "parent-not-found" };
+        if (nextParentId === copy.id) return { projectId: pid, ok: false, reason: "parent-self" };
+      }
       copy.components = {
         ...copy.components,
-        hierarchy: { ...(copy.components?.hierarchy || {}), parentId: String(options.parentId || "") || null }
+        hierarchy: { ...(copy.components?.hierarchy || {}), parentId: nextParentId }
       };
     }
 
@@ -369,9 +375,28 @@
     const scenes = await getScenes(pid);
     const scene = scenes.find(item => item.id === String(sceneId || "").trim());
     if (!scene) return { projectId: pid, ok: false, reason: "scene-not-found" };
+    const targetId = String(entityId || "").trim();
     const before = scene.entities.length;
-    scene.entities = scene.entities.filter(entity => entity.id !== String(entityId || "").trim());
+    scene.entities = scene.entities.filter(entity => entity.id !== targetId);
     if (scene.entities.length === before) return { projectId: pid, ok: false, reason: "entity-not-found" };
+
+    scene.entities.forEach(entity => {
+      if (entity.components?.hierarchy?.parentId === targetId) {
+        entity.components = {
+          ...entity.components,
+          hierarchy: { ...(entity.components.hierarchy || {}), parentId: null }
+        };
+        entity.updatedAt = new Date().toISOString();
+      }
+    });
+
+    const engine = await getEngineConfig(pid);
+    if (engine.activeSceneId === scene.id) {
+      // Keep the scene active; removing an entity must never invalidate scene selection.
+      engine.activeSceneId = scene.id;
+      engine.updatedAt = new Date().toISOString();
+      await window.ANZUBA_PROJECTS?.setData?.({ [ENGINE_KEY]: engine }, pid);
+    }
     scene.updatedAt = new Date().toISOString();
     await window.ANZUBA_PROJECTS?.setData?.({ [SCENE_KEY]: scenes }, pid);
     return { projectId: pid, ok: true, scene: clone(scene) };
@@ -394,6 +419,67 @@
     return { projectId: pid, ok: true, entity: clone(entity) };
   }
 
+  async function getGameEngineDiagnostics(id) {
+    const pid = projectId(id);
+    const config = await getEngineConfig(pid);
+    const scenes = await getScenes(pid);
+    const problems = [];
+    const sceneIds = new Set();
+
+    if (!["2d", "3d"].includes(config.mode)) problems.push("invalid-engine-mode");
+    if (config.activeSceneId && !scenes.some(scene => scene.id === config.activeSceneId)) {
+      problems.push("active-scene-not-found");
+    }
+    if (scenes.length > 50) problems.push("scene-limit-exceeded");
+
+    scenes.forEach(scene => {
+      if (scene.projectId !== pid) problems.push("scene-project-mismatch:" + scene.id);
+      if (sceneIds.has(scene.id)) problems.push("duplicate-scene-id:" + scene.id);
+      sceneIds.add(scene.id);
+      if (!Array.isArray(scene.entities)) {
+        problems.push("invalid-entities:" + scene.id);
+        return;
+      }
+      if (scene.entities.length > 1000) problems.push("entity-limit-exceeded:" + scene.id);
+      const entityIds = new Set();
+      scene.entities.forEach(entity => {
+        if (!entity.id || entityIds.has(entity.id)) problems.push("duplicate-entity-id:" + scene.id);
+        entityIds.add(entity.id);
+        if (!entity.components || typeof entity.components !== "object" || Array.isArray(entity.components)) {
+          problems.push("invalid-components:" + scene.id + ":" + entity.id);
+        }
+        const parentId = entity.components?.hierarchy?.parentId;
+        if (parentId && !entityIds.has(parentId) && !scene.entities.some(item => item.id === parentId)) {
+          problems.push("missing-parent:" + scene.id + ":" + entity.id);
+        }
+      });
+      scene.entities.forEach(entity => {
+        let cursorId = entity.components?.hierarchy?.parentId || null;
+        const visited = new Set();
+        while (cursorId) {
+          if (visited.has(cursorId)) {
+            problems.push("hierarchy-cycle:" + scene.id + ":" + entity.id);
+            break;
+          }
+          visited.add(cursorId);
+          const parent = scene.entities.find(item => item.id === cursorId);
+          if (!parent) break;
+          cursorId = parent.components?.hierarchy?.parentId || null;
+        }
+      });
+    });
+
+    return {
+      projectId: pid,
+      ok: problems.length === 0,
+      healthy: problems.length === 0,
+      sceneCount: scenes.length,
+      entityCount: scenes.reduce((total, scene) => total + (Array.isArray(scene.entities) ? scene.entities.length : 0), 0),
+      activeSceneId: config.activeSceneId || null,
+      problems
+    };
+  }
+
   async function listScenes(id) {
     return getScenes(id);
   }
@@ -403,6 +489,7 @@
     configureEngine,
     getEngineConfig,
     getEngineStatus,
+    getGameEngineDiagnostics,
     setActiveScene,
     clearActiveScene,
     getScene,
@@ -428,6 +515,9 @@
     configureEngine(options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("game.engine.status", ({ id } = {}) =>
     getEngineStatus(id));
+  window.ANZUBA_AI_BRIDGE?.on("game.engine.diagnostics", ({ id } = {}) =>
+    getGameEngineDiagnostics(id));
+
 
   window.ANZUBA_AI_BRIDGE?.on("game.scene.activate", ({ sceneId, id } = {}) =>
     setActiveScene(sceneId, id));
