@@ -141,6 +141,25 @@
     return get(projectId);
   }
 
+  async function getHealth(projectId) {
+    const id = projectId || window.ANZUBA_PROJECTS?.getActive()?.id;
+    if (!id) return { ok: false, projectId: null, checks: {} };
+    const os = await status(id);
+    const users = await window.ANZUBA_USERS?.list?.(id) || [];
+    const processes = await window.ANZUBA_PROCESSES?.list?.(id) || [];
+    const filesystem = await window.ANZUBA_FS?.get?.(id);
+    const environment = await window.ANZUBA_ENV?.get?.(id);
+    const checks = {
+      osState: !!os,
+      users: users.length > 0,
+      filesystem: !!filesystem,
+      environment: !!environment,
+      processManager: !!window.ANZUBA_PROCESSES,
+      shell: !!window.ANZUBA_SHELL
+    };
+    return { ok: Object.values(checks).every(Boolean), projectId: id, state: os?.state || "stopped", checks, counts: { users: users.length, processes: processes.length, filesystemEntries: filesystem ? Object.keys(filesystem).length : 0 } };
+  }
+
   window.ANZUBA_OS = {
     defaults: clone(DEFAULT_OS),
     get,
@@ -152,6 +171,7 @@
   window.ANZUBA_AI_BRIDGE?.on("os.status", ({ id } = {}) => status(id));
   window.ANZUBA_AI_BRIDGE?.on("os.boot", ({ id } = {}) => boot(id));
   window.ANZUBA_AI_BRIDGE?.on("os.shutdown", ({ id } = {}) => shutdown(id));
+  window.ANZUBA_AI_BRIDGE?.on("os.health", ({ id } = {}) => getHealth(id));
 
   setTimeout(() => {
     const active = window.ANZUBA_PROJECTS?.getActive?.();
