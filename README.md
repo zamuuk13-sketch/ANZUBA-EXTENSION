@@ -392,3 +392,7 @@ O AI Programmer agora possui uma operação dedicada para gravar a implementaç�
 ### Etapa 97/275 — Validação da implementação
 
 O AI Programmer agora consegue validar os arquivos de implementação gerados dentro do workspace. A operação verifica caminhos, existência, leitura e conteúdo dos arquivos, identifica arquivos ausentes ou vazios e retorna um diagnóstico consolidado sem executar o projeto. API: `ANZUBA_AI_PROGRAMMER.validateProgramImplementation`. Bridge: `ai.program.implementation.validate`.
+
+### Etapa 98/275 — Preparação automática do build
+
+O AI Programmer agora consegue encaminhar uma implementação validada para o Build System. A operação resolve o compilador instalado pela linguagem quando necessário, valida a origem e monta a preparação de build com saída, argumentos, ambiente, usuário e diretório de trabalho. O plano passa para a etapa de build em execução quando a preparação é aceita. API: `ANZUBA_AI_PROGRAMMER.prepareProgramBuild`. Bridge: `ai.program.build.prepare`.
