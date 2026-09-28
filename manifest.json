@@ -38,6 +38,7 @@
         "src/core/disk-manager.js",
         "src/core/network-manager.js",
         "src/core/process-manager.js",
+        "src/core/kernel-manager.js",
         "src/core/user-manager.js",
         "src/core/shell-manager.js",
         "src/core/ai-adapters.js",
