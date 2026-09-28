@@ -314,6 +314,64 @@
     };
   }
 
+  async function generateImplementation(planId, options = {}, id) {
+    const pid = projectId(id);
+    const plan = await getProgramPlan(planId, pid);
+    if (!plan) return { projectId: pid, ok: false, reason: "plan-not-found" };
+
+    const workspace = plan.workspace?.root;
+    if (!workspace) return { projectId: pid, ok: false, reason: "workspace-not-prepared" };
+
+    const fs = window.ANZUBA_FS;
+    if (!fs?.writeFile || !fs?.exists) {
+      return { projectId: pid, ok: false, reason: "filesystem-unavailable" };
+    }
+
+    const files = Array.isArray(options.files) ? options.files.slice(0, 100) : [];
+    if (!files.length) {
+      return { projectId: pid, ok: false, reason: "implementation-files-required" };
+    }
+
+    const root = workspace.endsWith("/") ? workspace : workspace + "/";
+    const generated = [];
+    const skipped = [];
+
+    for (const item of files) {
+      const path = String(item?.path || "").trim().replace(/\\\\/g, "/");
+      const content = String(item?.content ?? "");
+      if (!path.startsWith(root) || path.includes("..")) {
+        return { projectId: pid, ok: false, reason: "invalid-implementation-path", path, generated, skipped };
+      }
+      if (!content.length || content.length > 500000) continue;
+
+      if (await fs.exists(path, pid) && !options.overwrite) {
+        skipped.push(path);
+        continue;
+      }
+
+      const written = await fs.writeFile(path, content, pid, { username: "ai" });
+      if (!written) {
+        return { projectId: pid, ok: false, reason: "implementation-write-failed", path, generated, skipped };
+      }
+      generated.push(path);
+    }
+
+    const updated = await updateProgramPlan(plan.id, {
+      status: "running",
+      stepId: "implement",
+      stepStatus: "completed"
+    }, pid);
+
+    return {
+      projectId: pid,
+      ok: true,
+      planId: plan.id,
+      generated,
+      skipped,
+      plan: updated
+    };
+  }
+
   async function getProgramPlan(planId, id) {
     const plans = await getPlans(id);
     return plans.find(plan => plan.id === String(planId || "").trim()) || null;
@@ -354,6 +412,7 @@
     getProgramPlan,
     scaffoldProgram,
     generateProgramFiles,
+    generateImplementation,
     prepareProgramWorkspace,
     updateProgramPlan,
     listProgramPlans,
@@ -373,6 +432,9 @@
     getProgramPlan(planId, id));
   window.ANZUBA_AI_BRIDGE?.on("ai.program.scaffold", ({ planId, options, id } = {}) =>
     scaffoldProgram(planId, options || {}, id));
+
+  window.ANZUBA_AI_BRIDGE?.on("ai.program.implementation.write", ({ planId, options, id } = {}) =>
+    generateImplementation(planId, options || {}, id));
 
   window.ANZUBA_AI_BRIDGE?.on("ai.program.generate", ({ planId, options, id } = {}) =>
     generateProgramFiles(planId, options || {}, id));
