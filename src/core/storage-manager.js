@@ -397,7 +397,15 @@
     if (!state || !normalized || !state.snapshots[normalized]) return false;
 
     const snapshot = state.snapshots[normalized];
-    state.entries = clone(snapshot.entries || {});
+    const restoredEntries = clone(snapshot.entries || {});
+    const restoredBytes = Object.values(restoredEntries)
+      .reduce((sum, entry) => sum + estimateBytes(entry?.value), 0);
+    const quotaBytes = state.quotaMB * 1024 * 1024;
+    if (restoredBytes > quotaBytes) {
+      throw new Error("Snapshot excede a quota de armazenamento virtual atual.");
+    }
+
+    state.entries = restoredEntries;
     state.volumes = clone(snapshot.volumes || DEFAULT_STORAGE.volumes);
     await saveState(state, pid);
 
