@@ -1,5 +1,11 @@
 # ANZUBA
 
+### Etapa 35/275 — Variáveis de ambiente no Shell
+
+O shell virtual agora entende variáveis do ambiente do projeto. Comandos podem usar formatos como `$HOME`, `$USER` e `${PATH}`, e o comando `export NOME=valor` grava variáveis no ambiente persistente do projeto. A expansão acontece antes da execução do comando, mantendo o shell conectado ao gerenciador de ambiente do ANZUBA OS.
+
+# ANZUBA
+
 ### Etapa 34/275 — Shell virtual do ANZUBA OS
 
 O ANZUBA agora possui uma primeira camada real de terminal virtual, executada exclusivamente sobre o sistema de arquivos e os recursos virtuais do projeto. O shell mantém diretório de trabalho e histórico por projeto, possui tokenização básica com aspas e caminhos relativos/absolutos e oferece comandos iniciais como `pwd`, `cd`, `ls`, `cat`, `mkdir`, `touch`, `echo`, `env`, `whoami`, `ps`, `uname`, `clear` e `help`.
