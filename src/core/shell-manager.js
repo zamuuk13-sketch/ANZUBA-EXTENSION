@@ -118,6 +118,15 @@
     return {};
   }
 
+  async function expandVariables(tokens) {
+    const environment = await window.ANZUBA_ENV.get();
+    return tokens.map(token => token.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)/g, (_, braced, plain) => {
+      const key = braced || plain;
+      const value = environment?.[key];
+      return Array.isArray(value) ? value.join(":") : String(value ?? "");
+    }));
+  }
+
   async function env() {
     const value = await window.ANZUBA_ENV.get();
     return { stdout: Object.keys(value).sort().map(key => key + "=" + (Array.isArray(value[key]) ? value[key].join(":") : value[key])).join("\n") };
@@ -134,7 +143,7 @@
     if (!value) throw new Error("Projeto ANZUBA não disponível.");
     const raw = String(commandLine ?? "").trim();
     if (!raw) return { command: "", stdout: "", stderr: "", exitCode: 0, cwd: value.cwd };
-    const tokens = tokenize(raw), command = tokens.shift(), args = tokens;
+    const tokens = await expandVariables(tokenize(raw)), command = tokens.shift(), args = tokens;
     value.history.push(raw);
     let result = {};
     switch (command) {
@@ -146,11 +155,23 @@
       case "touch": result = await touch(args, value); break;
       case "echo": result = { stdout: args.join(" ") }; break;
       case "env": result = await env(); break;
+      case "export": {
+        const expression = args.join(" ");
+        const index = expression.indexOf("=");
+        if (index <= 0) result = { stderr: "export: use NOME=valor", exitCode: 1 };
+        else {
+          const name = expression.slice(0, index).trim();
+          const value = expression.slice(index + 1);
+          if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) result = { stderr: "export: nome inválido", exitCode: 1 };
+          else { await window.ANZUBA_ENV.set(name, value); result = {}; }
+        }
+        break;
+      }
       case "whoami": { const e = await window.ANZUBA_ENV.get(); result = { stdout: String(e?.USER || "ai") }; break; }
       case "ps": result = await processes(); break;
       case "uname": { const os = await window.ANZUBA_OS.status(); result = { stdout: "ANZUBA OS " + (os?.version || "0.1.0") + " " + (os?.architecture || "wasm32") }; break; }
       case "clear": result = { clear: true }; break;
-      case "help": result = { stdout: "pwd cd ls cat mkdir touch echo env whoami ps uname clear help" }; break;
+      case "help": result = { stdout: "pwd cd ls cat mkdir touch echo env export whoami ps uname clear help" }; break;
       default: result = { stderr: command + ": comando não encontrado", exitCode: 127 };
     }
     await save(value, id);
