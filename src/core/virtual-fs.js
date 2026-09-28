@@ -66,11 +66,73 @@
     for (const [key, item] of Object.entries(data.filesystem)) {\n      if (item && typeof item === "object" && !item.owner) Object.assign(item, metadata(key));\n    }\n    return data.filesystem;
   }
 
+  function validMode(mode) {
+    const value = String(mode || "").trim();
+    return /^[0-7]{3}$/.test(value) ? value : null;
+  }
+
+  async function metadataFor(path, projectId) {
+    const fs = await getFs(projectId);
+    const target = normalize(path);
+    const item = fs?.[target] || fs?.[dir(target)];
+    if (!item) return null;
+    return {
+      path: item.type === "directory" ? dir(target) : target,
+      type: item.type,
+      owner: item.owner || "root",
+      group: item.group || "root",
+      mode: item.mode || "755",
+      size: Number(item.size || (item.type === "file" ? String(item.content || "").length : 0)),
+      createdAt: item.createdAt || null,
+      updatedAt: item.updatedAt || null
+    };
+  }
+
+  async function chmod(path, mode, projectId, options = {}) {
+    const id = projectId || window.ANZUBA_PROJECTS?.getActive()?.id;
+    const fs = await getFs(id);
+    const value = validMode(mode);
+    const target = normalize(path);
+    const key = fs?.[target] ? target : fs?.[dir(target)] ? dir(target) : null;
+    if (!fs || !key || !value) return false;
+    const username = String(options.username || "ai");
+    if (username !== "root" && username !== fs[key].owner) return false;
+    fs[key].mode = value;
+    await window.ANZUBA_PROJECTS.setData({ filesystem: fs }, id);
+    return true;
+  }
+
+  async function chown(path, owner, projectId, options = {}) {
+    const id = projectId || window.ANZUBA_PROJECTS?.getActive()?.id;
+    const fs = await getFs(id);
+    const target = normalize(path);
+    const key = fs?.[target] ? target : fs?.[dir(target)] ? dir(target) : null;
+    if (!fs || !key || !owner || String(options.username || "ai") !== "root") return false;
+    const user = await window.ANZUBA_USERS?.get?.(owner, id);
+    if (!user) return false;
+    fs[key].owner = user.username;
+    fs[key].group = user.primaryGroup;
+    await window.ANZUBA_PROJECTS.setData({ filesystem: fs }, id);
+    return true;
+  }
+
   async function mkdir(path, projectId, options = {}) {
     const id = projectId || window.ANZUBA_PROJECTS?.getActive()?.id;
     const fs = await getFs(id);
     if (!fs) return false;
-    fs[dir(path)] = { type: "directory", createdAt: new Date().toISOString() };
+    const target = dir(path);
+    const parent = dir(target === "/" ? "/" : target.slice(0, -1).split("/").slice(0, -1).join("/") || "/");
+    const username = String(options.username || "ai");
+    const parentItem = fs[parent];
+    if (!parentItem || !(await access(parentItem, username, "wx", id)) || fs[target]) return false;
+    const user = await window.ANZUBA_USERS?.get?.(username, id);
+    fs[target] = {
+      type: "directory",
+      createdAt: new Date().toISOString(),
+      owner: user?.username || username,
+      group: user?.primaryGroup || "ai",
+      mode: validMode(options.mode) || "775"
+    };
     await window.ANZUBA_PROJECTS.setData({ filesystem: fs }, id);
     return true;
   }
@@ -79,22 +141,50 @@
     const id = projectId || window.ANZUBA_PROJECTS?.getActive()?.id;
     const fs = await getFs(id);
     if (!fs) return false;
+    const target = normalize(path);
+    const username = String(options.username || "ai");
+    const existing = fs[target];
     const value = String(content ?? "");
-    fs[normalize(path)] = { type: "file", content: value, size: value.length, updatedAt: new Date().toISOString() };
+    if (existing) {
+      if (existing.type !== "file" || !(await access(existing, username, "w", id))) return false;
+      existing.content = value;
+      existing.size = value.length;
+      existing.updatedAt = new Date().toISOString();
+    } else {
+      const parent = dir(target.split("/").slice(0, -1).join("/") || "/");
+      const parentItem = fs[parent];
+      if (!parentItem || !(await access(parentItem, username, "wx", id))) return false;
+      const user = await window.ANZUBA_USERS?.get?.(username, id);
+      fs[target] = {
+        type: "file",
+        content: value,
+        size: value.length,
+        updatedAt: new Date().toISOString(),
+        owner: user?.username || username,
+        group: user?.primaryGroup || "ai",
+        mode: validMode(options.mode) || "664"
+      };
+    }
     await window.ANZUBA_PROJECTS.setData({ filesystem: fs }, id);
     return true;
   }
 
   async function readFile(path, projectId, options = {}) {
     const fs = await getFs(projectId);
-    const item = fs?.[normalize(path)];
-    return item?.type === "file" ? item.content : null;
+    const target = normalize(path);
+    const item = fs?.[target];
+    if (!item || item.type !== "file") return null;
+    if (!(await access(item, options.username || "ai", "r", projectId))) return null;
+    return item.content;
   }
 
   async function list(path = "/", projectId, options = {}) {
     const fs = await getFs(projectId);
     if (!fs) return [];
-    const parent = dir(path);
+    const target = normalize(path);
+    const directory = fs[target] || fs[dir(target)];
+    if (directory && !(await access(directory, options.username || "ai", "rx", projectId))) return [];
+    const parent = dir(target);
     const result = new Map();
     for (const key of Object.keys(fs)) {
       if (!key.startsWith(parent) || key === parent) continue;
@@ -114,12 +204,16 @@
     if (!fs) return false;
     const target = normalize(path);
     if (target === "/") return false;
-    let changed = false;
-    for (const key of Object.keys(fs)) {
-      if (key === target || key.startsWith(dir(target))) { delete fs[key]; changed = true; }
+    const key = fs[target] ? target : fs[dir(target)] ? dir(target) : null;
+    if (!key) return false;
+    const parent = dir(target.split("/").slice(0, -1).join("/") || "/");
+    const username = String(options.username || "ai");
+    if (!fs[parent] || !(await access(fs[parent], username, "wx", id))) return false;
+    for (const entry of Object.keys(fs)) {
+      if (entry === target || entry === dir(target) || entry.startsWith(dir(target))) delete fs[entry];
     }
-    if (changed) await window.ANZUBA_PROJECTS.setData({ filesystem: fs }, id);
-    return changed;
+    await window.ANZUBA_PROJECTS.setData({ filesystem: fs }, id);
+    return true;
   }
 
   async function exists(path, projectId) {
