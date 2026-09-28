@@ -177,11 +177,20 @@
   }
 
   function permissionBits(mode) {
-    const value = String(mode || "rwxr-xr-x").slice(0, 9).padEnd(9, "-");
+    const raw = String(mode || "").trim();
+    if (/^[0-7]{3}$/.test(raw)) {
+      const map = ["---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx"];
+      return {
+        owner: map[Number(raw[0])],
+        group: map[Number(raw[1])],
+        other: map[Number(raw[2])]
+      };
+    }
+    const value = raw || "rwxr-xr-x";
     return {
-      owner: value.slice(0, 3),
-      group: value.slice(3, 6),
-      other: value.slice(6, 9)
+      owner: value.slice(0, 3).padEnd(3, "-"),
+      group: value.slice(3, 6).padEnd(3, "-"),
+      other: value.slice(6, 9).padEnd(3, "-")
     };
   }
 
