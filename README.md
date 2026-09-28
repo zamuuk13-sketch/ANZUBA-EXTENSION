@@ -298,6 +298,15 @@ A detecção de linguagem foi ampliada além da extensão do arquivo. O ANZUBA a
 
 ### Etapa 79/275 — Preparação de build
 
+
+### Etapa 80/275 — Pipeline de build virtual
+
+Adicionado o pipeline de build virtual do ANZUBA. A IA pode validar a origem e o compilador, preparar a configuração, criar o job de compilação e registrar o artefato de saída como pendente até que a execução virtual produza o arquivo. O pipeline usa `ANZUBA_TOOLS.runBuildPipeline` e o comando Bridge `build.run`.
+
+### Auditoria 71–80/275
+
+Após a implementação da etapa 80, foi realizada a varredura de bugs e a auditoria das etapas 71–80. Foram corrigidos dois problemas encontrados: o pipeline reutilizava argumentos já montados e poderia duplicar argumentos do compilador, e o cálculo da extensão de saída do compilador usava uma expressão regular incorreta. Artefatos criados pelo pipeline também ficam marcados como pendentes (`missing`) enquanto a execução ainda está enfileirada, evitando declarar um arquivo como disponível antes de existir.
+
 Adicionada a preparação de builds virtuais. O ANZUBA valida a origem e o compilador, combina argumentos padrão e personalizados, define saída, diretório, usuário e ambiente e retorna um plano de build pronto para execução. API: `ANZUBA_TOOLS.prepareBuild`. Bridge: `build.prepare`.
 
 Adicionada a validação dos arquivos de origem antes de um build. O ANZUBA verifica caminho, existência no filesystem virtual, tipo de arquivo, compilador associado, validade do compilador e compatibilidade da extensão com as extensões de entrada declaradas pelo compilador. API: `ANZUBA_TOOLS.validateBuildSource`. Bridge: `build.source.validate`.
