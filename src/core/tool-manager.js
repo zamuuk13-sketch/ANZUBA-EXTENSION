@@ -427,7 +427,7 @@
     const compiler = validation.compiler;
     const config = compiler.compilerConfig || {};
     const output = String(options.output || "").trim() ||
-      source.replace(/\\.[^./\\]+$/, config.outputExtension || ".out");
+      source.replace(/\.[^./\\]+$/, config.outputExtension || ".out");
     const args = [
       ...(Array.isArray(config.defaultArgs) ? config.defaultArgs.map(String) : []),
       source
