@@ -371,3 +371,6 @@ Adicionado o diagnóstico integrado do Build System através de `ANZUBA_TOOLS.ge
 ### Etapa 91/275 — Núcleo do AI Programmer
 
 Adicionado o núcleo inicial do AI Programmer. A IA agora pode transformar uma solicitação em um plano persistente de desenvolvimento por projeto, identificando o tipo de tarefa, linguagem e alvo inicial, criando etapas de análise, preparação, implementação, build, teste, correção e finalização. O plano pode ser consultado, listado e atualizado pela API `ANZUBA_AI_PROGRAMMER` e pelos comandos Bridge `ai.program.plan.create`, `ai.program.plan.get`, `ai.program.plan.update` e `ai.program.plans.list`.
+### Etapa 92/275 — Análise de requisitos do AI Programmer
+
+O AI Programmer agora analisa a solicitação antes de criar o plano, detectando características do projeto, termos explícitos, restrições de alvo/linguagem e possíveis requisitos ausentes. A análise fica persistida junto ao plano e também pode ser solicitada diretamente pelo comando Bridge `ai.program.requirements.analyze`.
