@@ -339,3 +339,7 @@ Adicionado o registro persistente de alvos de build por projeto. Cada alvo pode 
 ### Etapa 82/275 — Resolução de alvos de build
 
 Adicionada a resolução de alvos de build por projeto. O ANZUBA agora consegue transformar um alvo persistente em um plano resolvido, relacionando perfil, compilador, arquivo de origem, saída, argumentos, plataforma, arquitetura e formato. A IA pode usar `ANZUBA_TOOLS.resolveBuildTarget` ou o comando Bridge `build.target.resolve`. A resolução valida o alvo antes de retornar a configuração e permanece isolada no projeto selecionado.
+
+### Etapa 83/275 — Plano de build por alvo
+
+Adicionada a geração de um plano de build a partir de um alvo resolvido. A IA pode usar `ANZUBA_TOOLS.prepareBuildTarget` para validar o alvo, resolver o compilador/perfil, validar o arquivo de origem quando informado e montar uma configuração final de execução com argumentos, ambiente, diretório de trabalho e saída. O comando Bridge `build.target.prepare` expõe a mesma operação.
