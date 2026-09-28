@@ -384,3 +384,7 @@ O AI Programmer agora consegue criar a estrutura inicial de código dentro do wo
 ### Etapa 95/275 — Geração da implementação do projeto
 
 O AI Programmer agora consegue transformar o plano e a linguagem detectada em arquivos iniciais de implementação e testes dentro do workspace virtual. A geração permanece isolada por projeto, aceita arquivos fornecidos pela IA, protege o workspace contra escrita fora da raiz e pode atualizar o estado da etapa de implementação. A operação está disponível pela API `ANZUBA_AI_PROGRAMMER.generateProgramFiles` e pelo comando Bridge `ai.program.generate`.
+
+### Etapa 96/275 — Escrita da implementação gerada
+
+O AI Programmer agora possui uma operação dedicada para gravar a implementação fornecida pela IA dentro do workspace do plano. A operação aceita até 100 arquivos, aplica limite de conteúdo, impede caminhos fora do workspace e respeita isolamento por projeto. Arquivos existentes são preservados por padrão e podem ser substituídos explicitamente. API: `ANZUBA_AI_PROGRAMMER.generateImplementation`. Bridge: `ai.program.implementation.write`.
