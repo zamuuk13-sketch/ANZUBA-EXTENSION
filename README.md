@@ -331,3 +331,7 @@ Adicionado o registro de compiladores ao Tool Manager. Um compilador pode ser as
 ### Etapa 59/275 — Catálogo inteligente de ferramentas
 
 O Tool Manager agora possui busca e recomendação local de ferramentas, com filtros por tipo/status, pontuação por relevância, prioridade para correspondência de nome e limite controlado de resultados. Tudo permanece isolado por projeto.
+
+### Etapa 81/275 — Registro de alvos de build
+
+Adicionado o registro persistente de alvos de build por projeto. Cada alvo pode definir plataforma, arquitetura, formato, perfil, compilador, arquivo de origem, saída, argumentos e variáveis de ambiente. A IA pode criar, consultar, listar, remover e validar alvos através de `ANZUBA_TOOLS.getBuildTargets`, `getBuildTarget`, `setBuildTarget`, `removeBuildTarget` e `validateBuildTarget`, ou pelos comandos Bridge `build.targets.list`, `build.target.get`, `build.target.set`, `build.target.remove` e `build.target.validate`. Os alvos permanecem isolados por projeto e podem ser usados como configuração persistente para as próximas etapas do Build System.
