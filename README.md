@@ -424,3 +424,7 @@ A Game Engine agora permite selecionar e desativar a cena ativa do projeto. A se
 ### Etapa 104/275 — Componentes de entidades
 
 A Game Engine agora permite substituir e consultar o conjunto de componentes de uma entidade. Os dados são normalizados, persistidos por projeto e expostos pelo AI Bridge através de `game.entity.components.set` e `game.entity.components.get`.
+
+### Etapa 105/275 — Hierarquia de entidades
+
+A Game Engine agora suporta relações pai/filho entre entidades. A IA pode definir ou remover o pai de uma entidade e consultar seus filhos, com validação contra auto-parentesco, pais inexistentes e ciclos hierárquicos. A hierarquia permanece persistente e isolada por projeto e está disponível pelo AI Bridge.
