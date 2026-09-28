@@ -1,5 +1,9 @@
 # ANZUBA
 
+### Etapa 36/275 — Descoberta de executáveis pelo PATH virtual
+
+O shell agora consulta o `PATH` virtual do projeto quando recebe um comando que não é um built-in. Ele procura o executável dentro dos diretórios virtuais configurados e, quando encontra um arquivo correspondente, identifica corretamente que existe um executável virtual, mas que o runtime de execução ainda será conectado nas próximas etapas. A busca fica disponível em `window.ANZUBA_SHELL.findExecutable`.
+
 ### Etapa 35/275 — Variáveis de ambiente no Shell
 
 O shell virtual agora entende variáveis do ambiente do projeto. Comandos podem usar formatos como `$HOME`, `$USER` e `${PATH}`, e o comando `export NOME=valor` grava variáveis no ambiente persistente do projeto. A expansão acontece antes da execução do comando, mantendo o shell conectado ao gerenciador de ambiente do ANZUBA OS.
