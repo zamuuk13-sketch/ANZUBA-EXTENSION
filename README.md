@@ -184,6 +184,10 @@ O gerenciador de ferramentas agora registra tipo de fonte, página oficial, lice
 
 O Tool Manager agora mantém múltiplas versões por ferramenta, permite adicionar/remover versões do catálogo e selecionar a versão ativa. A IA pode consultar e alterar versões com `tools.versions.get`, `tools.version.add`, `tools.version.remove` e `tools.version.select`.
 
+### Etapa 56/275 — Dependências de ferramentas
+
+O Tool Manager agora gerencia dependências entre ferramentas. A IA pode definir dependências, consultar o que uma ferramenta precisa e descobrir quais outras ferramentas dependem dela, com validação de referências e prevenção de dependência da própria ferramenta.
+
 ## Próximas etapas
 41–45: expansão do núcleo do ANZUBA OS
 46–52: armazenamento
