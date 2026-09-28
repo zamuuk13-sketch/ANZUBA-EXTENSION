@@ -365,3 +365,6 @@ Adicionada a execução controlada de manifestos de build. O ANZUBA valida o man
 ### Etapa 89/275 — Atualização do estado de builds
 
 Adicionada a atualização dos jobs de build a partir do processo virtual do ANZUBA OS. A operação `refreshBuildJob` sincroniza estado, código de saída e erro do job, verifica os artefatos no filesystem virtual e atualiza cada artefato para `available`, `missing` ou `invalid`. A AI Bridge expõe `compiler.job.refresh`.
+### Etapa 90/275 — Diagnóstico e auditoria do Build System
+
+Adicionado o diagnóstico integrado do Build System através de `ANZUBA_TOOLS.getBuildSystemDiagnostics` e `build.system.diagnostics`. A etapa verifica alvos, perfis, manifestos, jobs, processos associados e artefatos, preservando o isolamento por projeto. Após a implementação, foi realizada a varredura de bugs e a auditoria do bloco 81–90. Foram corrigidos o repasse do ambiente de execução dos manifestos para o processo virtual e a cobertura dos diagnósticos de perfis e problemas estruturais dos artefatos.
