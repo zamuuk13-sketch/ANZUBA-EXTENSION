@@ -257,6 +257,12 @@ Adicionado o primeiro suporte da camada de linguagens e desenvolvimento. O Tool 
 Os runtimes de linguagem agora possuem configuração persistente por projeto. A IA pode consultar um runtime específico e definir variáveis de ambiente e diretório de trabalho padrão através de `ANZUBA_TOOLS.getLanguageRuntime` e `ANZUBA_TOOLS.setLanguageRuntimeConfig`, ou pelos comandos `tools.runtime.get` e `tools.runtime.config.set`.
 
 
+
+### Etapa 68/275 — Registro de linguagens e detecção por extensão
+
+Adicionada a camada de identificação de linguagens do projeto. O ANZUBA pode registrar uma linguagem com ID, extensões e metadados e detectar a linguagem associada a um arquivo pelo caminho/extensão. A IA pode usar `ANZUBA_TOOLS.registerLanguage` e `ANZUBA_TOOLS.findLanguageByFile`, ou os comandos `language.register` e `language.detectFile`.
+
+
 ### Etapa 59/275 — Catálogo inteligente de ferramentas
 
 O Tool Manager agora possui busca e recomendação local de ferramentas, com filtros por tipo/status, pontuação por relevância, prioridade para correspondência de nome e limite controlado de resultados. Tudo permanece isolado por projeto.
