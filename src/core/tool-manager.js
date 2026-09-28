@@ -342,6 +342,68 @@
     return compilers.find(tool => tool.status === "installed") || compilers[0] || null;
   }
 
+  async function validateCompiler(compilerId, id) {
+    const pid = projectId(id);
+    const tools = await getAll(pid);
+    const compiler = tools.find(tool => tool.id === String(compilerId || "").trim() && tool.type === "compiler");
+    if (!compiler) {
+      return { projectId: pid, ok: false, compilerId: String(compilerId || ""), reason: "compiler-not-found", compiler: null, issues: ["compiler-not-found"] };
+    }
+
+    const issues = [];
+    const languageId = String(compiler.compilerConfig?.languageId || compiler.languageId || "").trim();
+
+    if (!languageId) issues.push("language-missing");
+
+    const language = tools.find(tool =>
+      tool.type === "runtime" &&
+      String(tool.languageId || "").toLowerCase() === languageId.toLowerCase()
+    );
+    if (!language) issues.push("language-not-registered");
+
+    const extensions = Array.isArray(compiler.compilerConfig?.sourceExtensions)
+      ? compiler.compilerConfig.sourceExtensions
+      : [];
+    for (const extension of extensions) {
+      if (!/^\.[a-z0-9][a-z0-9._-]{0,15}$/.test(String(extension))) {
+        issues.push(`invalid-source-extension:${extension}`);
+      }
+    }
+
+    const executableNames = Array.isArray(compiler.executables)
+      ? compiler.executables.map(item => String(item?.name || "").trim()).filter(Boolean)
+      : [];
+    if (!executableNames.length) {
+      issues.push("executable-missing");
+    } else {
+      const resolved = executableNames.some(name =>
+        tools.some(tool =>
+          tool.id === compiler.id &&
+          tool.status === "installed" &&
+          (tool.executables || []).some(item => String(item?.name || "").trim() === name)
+        )
+      );
+      if (!resolved) issues.push("executable-not-installed");
+    }
+
+    if (compiler.status === "installed") {
+      const compatibility = await validateCompatibility(compiler.id, pid);
+      if (!compatibility.ok) issues.push("incompatible");
+    } else {
+      issues.push("compiler-not-installed");
+    }
+
+    const uniqueIssues = [...new Set(issues)];
+    return {
+      projectId: pid,
+      ok: uniqueIssues.length === 0,
+      compilerId: compiler.id,
+      compiler: clone(compiler),
+      language: language ? clone(language) : null,
+      issues: uniqueIssues
+    };
+  }
+
   async function health(id) {
     const pid = projectId(id);
     const tools = await getAll(pid);
@@ -1159,6 +1221,7 @@
     registerCompiler,
     listCompilers,
     findCompilerForLanguage,
+    validateCompiler,
     syncExecutables,
     executeExecutable
   };
@@ -1178,6 +1241,7 @@
   window.ANZUBA_AI_BRIDGE?.on("compiler.register", ({ compiler, id } = {}) => registerCompiler(compiler, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.list", ({ languageId, id } = {}) => listCompilers(languageId, id));
   window.ANZUBA_AI_BRIDGE?.on("compiler.find", ({ languageId, id } = {}) => findCompilerForLanguage(languageId, id));
+  window.ANZUBA_AI_BRIDGE?.on("compiler.validate", ({ compilerId, id } = {}) => validateCompiler(compilerId, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.executable.run", ({ name, args, cwd, user, id } = {}) => executeExecutable(name, { args, cwd, user }, id));
   window.ANZUBA_AI_BRIDGE?.on("tools.health", ({ id } = {}) => health(id));
   window.ANZUBA_AI_BRIDGE?.on("tools.catalog.search", ({ query, id } = {}) => catalog(query || {}, id));
