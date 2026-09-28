@@ -286,6 +286,11 @@ A detecção de linguagem foi ampliada além da extensão do arquivo. O ANZUBA a
 
 ### Etapa 75/275 — Validação de artefatos de compilação
 
+
+### Etapa 76/275 — Perfis de build
+
+Adicionados perfis de build persistentes por projeto. Cada perfil pode definir compilador, argumentos, saída, diretório de trabalho, usuário, variáveis de ambiente e nível de otimização. O ANZUBA também valida o perfil e o compilador associado antes do uso. APIs: `ANZUBA_TOOLS.getBuildProfiles`, `getBuildProfile`, `setBuildProfile`, `removeBuildProfile` e `validateBuildProfile`. Bridge: `build.profiles.list`, `build.profile.get`, `build.profile.set`, `build.profile.remove` e `build.profile.validate`.
+
 Adicionada a validação dos artefatos de compilação. O ANZUBA verifica existência do artefato registrado, caminho, tamanho, estado, vínculo com o job de compilação e isolamento do projeto, retornando os problemas encontrados sem executar nada no computador hospedeiro. A IA pode consultar com `ANZUBA_TOOLS.validateBuildArtifact` ou pelo comando `compiler.artifact.validate`.
 
 Adicionado o registro persistente dos artefatos produzidos pelos jobs de compilação. Cada artefato mantém vínculo com o job, caminho, tipo, tamanho, checksum e estado. A IA pode registrar, consultar, listar e remover artefatos através de `ANZUBA_TOOLS.registerBuildArtifact`, `getBuildArtifact`, `listBuildArtifacts` e `removeBuildArtifact`, ou pelos comandos `compiler.artifact.register`, `compiler.artifact.get`, `compiler.artifacts.list` e `compiler.artifact.remove`.
