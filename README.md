@@ -144,6 +144,10 @@ Adicionado o gerenciador de rede virtual persistente e isolado por projeto, com 
 
 Adicionado o gerenciador de kernel do ANZUBA OS, integrando boot e shutdown do sistema e consolidando o estado de CPU, memória, disco, rede e processos em um único status. A IA pode usar `kernel.boot`, `kernel.shutdown`, `kernel.status` e `kernel.health` para controlar e diagnosticar o núcleo virtual.
 
+### Etapa 46/275 — Armazenamento virtual
+
+Adicionada a camada de armazenamento virtual persistente e isolada por projeto. Ela oferece armazenamento de valores estruturados por chave, listagem por prefixo, remoção, limpeza, quota configurável e relatório de uso. A IA pode usar `storage.get`, `storage.set`, `storage.remove`, `storage.list`, `storage.clear`, `storage.quota.set` e `storage.status`.
+
 ## Próximas etapas
 41–45: expansão do núcleo do ANZUBA OS
 46–52: armazenamento
