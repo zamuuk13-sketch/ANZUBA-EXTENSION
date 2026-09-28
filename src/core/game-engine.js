@@ -282,6 +282,38 @@
     return { projectId: pid, ok: true, scene: clone(scene), entity: clone(entity), index: nextIndex };
   }
 
+  async function duplicateEntity(sceneId, entityId, options = {}, id) {
+    const pid = projectId(id);
+    const scenes = await getScenes(pid);
+    const scene = scenes.find(item => item.id === String(sceneId || "").trim());
+    if (!scene) return { projectId: pid, ok: false, reason: "scene-not-found" };
+    if (scene.entities.length >= 1000) return { projectId: pid, ok: false, reason: "entity-limit" };
+
+    const sourceId = String(entityId || "").trim();
+    const source = scene.entities.find(item => item.id === sourceId);
+    if (!source) return { projectId: pid, ok: false, reason: "entity-not-found" };
+
+    const now = new Date().toISOString();
+    const copy = {
+      ...clone(source),
+      id: "entity_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+      name: String(options.name !== undefined ? options.name : source.name + " Copy").slice(0, 120),
+      createdAt: now,
+      updatedAt: now
+    };
+    if (options.parentId !== undefined) {
+      copy.components = {
+        ...copy.components,
+        hierarchy: { ...(copy.components?.hierarchy || {}), parentId: String(options.parentId || "") || null }
+      };
+    }
+
+    scene.entities.push(copy);
+    scene.updatedAt = now;
+    await window.ANZUBA_PROJECTS?.setData?.({ [SCENE_KEY]: scenes }, pid);
+    return { projectId: pid, ok: true, scene: clone(scene), entity: clone(copy) };
+  }
+
   async function removeEntity(sceneId, entityId, id) {
     const pid = projectId(id);
     const scenes = await getScenes(pid);
@@ -334,7 +366,8 @@
     getEntityComponents,
     setEntityParent,
     getEntityChildren,
-    reorderEntity
+    reorderEntity,
+    duplicateEntity
   };
 
   window.ANZUBA_AI_BRIDGE?.on("game.engine.configure", ({ options, id } = {}) =>
@@ -353,6 +386,9 @@
     getScene(sceneId, id));
   window.ANZUBA_AI_BRIDGE?.on("game.scenes.list", ({ id } = {}) =>
     listScenes(id));
+  window.ANZUBA_AI_BRIDGE?.on("game.entity.duplicate", ({ sceneId, entityId, options, id } = {}) =>
+    duplicateEntity(sceneId, entityId, options || {}, id));
+
   window.ANZUBA_AI_BRIDGE?.on("game.entity.reorder", ({ sceneId, entityId, index, id } = {}) =>
     reorderEntity(sceneId, entityId, index, id));
 
