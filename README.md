@@ -217,3 +217,7 @@ O Tool Manager agora resolve a árvore de dependências antes da instalação. E
 231–245: segurança
 246–260: automação
 261–275: UX final
+
+### Etapa 59/275 — Catálogo inteligente de ferramentas
+
+O Tool Manager agora possui busca e recomendação local de ferramentas, com filtros por tipo/status, pontuação por relevância, prioridade para correspondência de nome e limite controlado de resultados. Tudo permanece isolado por projeto.
