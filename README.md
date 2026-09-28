@@ -335,3 +335,7 @@ O Tool Manager agora possui busca e recomendação local de ferramentas, com fil
 ### Etapa 81/275 — Registro de alvos de build
 
 Adicionado o registro persistente de alvos de build por projeto. Cada alvo pode definir plataforma, arquitetura, formato, perfil, compilador, arquivo de origem, saída, argumentos e variáveis de ambiente. A IA pode criar, consultar, listar, remover e validar alvos através de `ANZUBA_TOOLS.getBuildTargets`, `getBuildTarget`, `setBuildTarget`, `removeBuildTarget` e `validateBuildTarget`, ou pelos comandos Bridge `build.targets.list`, `build.target.get`, `build.target.set`, `build.target.remove` e `build.target.validate`. Os alvos permanecem isolados por projeto e podem ser usados como configuração persistente para as próximas etapas do Build System.
+
+### Etapa 82/275 — Resolução de alvos de build
+
+Adicionada a resolução de alvos de build por projeto. O ANZUBA agora consegue transformar um alvo persistente em um plano resolvido, relacionando perfil, compilador, arquivo de origem, saída, argumentos, plataforma, arquitetura e formato. A IA pode usar `ANZUBA_TOOLS.resolveBuildTarget` ou o comando Bridge `build.target.resolve`. A resolução valida o alvo antes de retornar a configuração e permanece isolada no projeto selecionado.
