@@ -458,3 +458,16 @@ A Game Engine agora permite consultar e alterar configurações persistentes de 
 ### Etapa 113/275 — Controle de gravidade da cena
 
 A Game Engine agora possui operações dedicadas para consultar e alterar a gravidade de uma cena. Os valores passam pela mesma validação das configurações gerais, permanecem persistentes e isolados por projeto e estão disponíveis pelo AI Bridge através de `game.scene.gravity.get` e `game.scene.gravity.set`.
+
+## Correção arquitetural — conexão real da IA com o ANZUBA OS
+
+Após a validação prática da extensão, foi corrigida a arquitetura de integração com as IAs. O ANZUBA não deve existir apenas como uma interface flutuante: o projeto agora mantém uma ponte entre o mundo JavaScript da página da IA e o ambiente isolado da extensão.
+
+Foi adicionado um bridge no **MAIN world** (`src/core/page-bridge-main.js`) e um relay no mundo isolado (`src/core/page-bridge.js`). A página hospedeira passa a enxergar `window.ANZUBA` e `window.ANZUBA_OS`, enquanto as operações são encaminhadas para o núcleo virtual do projeto.
+
+Também foi adicionada a camada `src/core/ai-agent.js`. Ao conectar um projeto a uma conversa, ela inicializa o ANZUBA OS, apresenta à IA o protocolo operacional do projeto e observa respostas da IA procurando chamadas `[[ANZUBA_TOOL]]`. As chamadas permitidas são executadas no ANZUBA OS/Game Engine e o resultado retorna à conversa como `[[ANZUBA_RESULT]]`.
+
+Essa correção não altera a contagem da roadmap: ela reforça a infraestrutura já construída nas etapas 1–113 para que o projeto seja efetivamente operacional, persistente e utilizável pela IA, em vez de apenas visual.
+
+A arquitetura usa os mundos de execução do Chrome para separar a página hospedeira do código interno da extensão e conectá-los por uma ponte controlada.
+
