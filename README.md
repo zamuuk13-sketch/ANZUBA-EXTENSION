@@ -140,6 +140,10 @@ Adicionado o gerenciador de disco virtual persistente e isolado por projeto, com
 
 Adicionado o gerenciador de rede virtual persistente e isolado por projeto, com hostname, interfaces virtuais, endereçamento, rotas, DNS, estado online/offline e controle de acesso de rede. A IA pode consultar com `network.status`, alterar o estado com `network.online.set`, controlar o acesso com `network.access.set`, adicionar/remover interfaces e resolver hosts com `network.resolve`.
 
+### Etapa 45/275 — Integração do kernel
+
+Adicionado o gerenciador de kernel do ANZUBA OS, integrando boot e shutdown do sistema e consolidando o estado de CPU, memória, disco, rede e processos em um único status. A IA pode usar `kernel.boot`, `kernel.shutdown`, `kernel.status` e `kernel.health` para controlar e diagnosticar o núcleo virtual.
+
 ## Próximas etapas
 41–45: expansão do núcleo do ANZUBA OS
 46–52: armazenamento
