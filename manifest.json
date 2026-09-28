@@ -27,6 +27,7 @@
         "src/core/ai-detector.js",
         "src/core/theme-adapter.js",
         "src/core/ai-bridge.js",
+        "src/core/ai-programmer.js",
         "src/core/project-manager.js",
         "src/core/virtual-fs.js",
         "src/core/material-manager.js",
