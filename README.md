@@ -172,6 +172,10 @@ Adicionado cache virtual persistente e isolado por projeto, separado do armazena
 
 Adicionada manutenção e reconciliação do armazenamento virtual. O ANZUBA recalcula os tamanhos reais das entradas a partir dos valores armazenados, identifica metadados de tamanho incorretos e detecta armazenamento acima da quota. A IA pode diagnosticar com `storage.reconcile` e, usando `repair: true`, corrigir os tamanhos inconsistentes sem misturar dados entre projetos.
 
+### Etapa 53/275 — Gerenciador de ferramentas
+
+Criado o núcleo do gerenciador de ferramentas virtual por projeto. Ele mantém catálogo, tipo, versão, origem, caminho, dependências e estado das ferramentas, com instalação e remoção controladas pelo ANZUBA. A IA pode usar `tools.list`, `tools.get`, `tools.register`, `tools.install` e `tools.uninstall`.
+
 ## Próximas etapas
 41–45: expansão do núcleo do ANZUBA OS
 46–52: armazenamento
