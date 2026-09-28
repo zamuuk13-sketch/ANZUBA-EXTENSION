@@ -167,6 +167,62 @@
     };
   }
 
+  async function getSceneSettings(sceneId, id) {
+    const pid = projectId(id);
+    const scene = await getScene(sceneId, pid);
+    if (!scene) return { projectId: pid, ok: false, reason: "scene-not-found" };
+    const settings = scene.settings && typeof scene.settings === "object" && !Array.isArray(scene.settings)
+      ? scene.settings
+      : {};
+    return {
+      projectId: pid,
+      ok: true,
+      settings: {
+        gravity: Number.isFinite(Number(settings.gravity)) ? Number(settings.gravity) : -9.81,
+        activeCamera: String(settings.activeCamera || "")
+      }
+    };
+  }
+
+  async function setSceneSettings(sceneId, settings = {}, id) {
+    const pid = projectId(id);
+    const scenes = await getScenes(pid);
+    const scene = scenes.find(item => item.id === String(sceneId || "").trim());
+    if (!scene) return { projectId: pid, ok: false, reason: "scene-not-found" };
+
+    const current = scene.settings && typeof scene.settings === "object" && !Array.isArray(scene.settings)
+      ? scene.settings
+      : {};
+    const next = {
+      gravity: current.gravity,
+      activeCamera: current.activeCamera || ""
+    };
+
+    if (settings.gravity !== undefined) {
+      const gravity = Number(settings.gravity);
+      if (!Number.isFinite(gravity)) {
+        return { projectId: pid, ok: false, reason: "invalid-gravity" };
+      }
+      next.gravity = gravity;
+    } else if (!Number.isFinite(Number(next.gravity))) {
+      next.gravity = -9.81;
+    }
+
+    if (settings.activeCamera !== undefined) {
+      const cameraId = String(settings.activeCamera || "").trim();
+      if (cameraId) {
+        const camera = scene.entities.find(entity => entity.id === cameraId);
+        if (!camera) return { projectId: pid, ok: false, reason: "camera-not-found" };
+      }
+      next.activeCamera = cameraId;
+    }
+
+    scene.settings = next;
+    scene.updatedAt = new Date().toISOString();
+    await window.ANZUBA_PROJECTS?.setData?.({ [SCENE_KEY]: scenes }, pid);
+    return { projectId: pid, ok: true, sceneId: scene.id, settings: clone(next) };
+  }
+
   async function duplicateScene(sceneId, options = {}, id) {
     const pid = projectId(id);
     const scenes = await getScenes(pid);
@@ -539,6 +595,8 @@
   window.ANZUBA_GAME_ENGINE = {
     createScene,
     duplicateScene,
+    getSceneSettings,
+    setSceneSettings,
     configureEngine,
     getEngineConfig,
     getEngineStatus,
@@ -581,6 +639,11 @@
     createScene(name, options || {}, id));
   window.ANZUBA_AI_BRIDGE?.on("game.scene.duplicate", ({ sceneId, options, id } = {}) =>
     duplicateScene(sceneId, options || {}, id));
+
+  window.ANZUBA_AI_BRIDGE?.on("game.scene.settings.get", ({ sceneId, id } = {}) =>
+    getSceneSettings(sceneId, id));
+  window.ANZUBA_AI_BRIDGE?.on("game.scene.settings.set", ({ sceneId, settings, id } = {}) =>
+    setSceneSettings(sceneId, settings || {}, id));
 
   window.ANZUBA_AI_BRIDGE?.on("game.scene.get", ({ sceneId, id } = {}) =>
     getScene(sceneId, id));
