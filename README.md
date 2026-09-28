@@ -405,10 +405,6 @@ O AI Programmer agora consegue executar o pipeline de build preparado para um pr
 
 O AI Programmer recebeu `getProgrammerDiagnostics` e o comando Bridge `ai.program.diagnostics`, verificando planos persistidos, isolamento por projeto, etapas, workspaces e estados em execução. Após a implementação, foi realizada a varredura estrutural e a auditoria das etapas 91–100, cobrindo planejamento, requisitos, workspace, scaffolding, geração, escrita, validação, preparação e execução de build. A década 91–100 foi fechada com as correções necessárias encontradas na revisão.
 
-### Etapa 101/275 — Núcleo inicial da Game Engine
-
-Iniciada a Game Engine do ANZUBA com um núcleo persistente de cenas e entidades. Cada projeto possui suas próprias cenas, com configurações básicas de gravidade/câmera, entidades e componentes. A engine oferece criação, consulta, listagem, adição, atualização e remoção de entidades, com limites de segurança e isolamento por projeto. API: `ANZUBA_GAME_ENGINE`. Bridge: `game.scene.*` e `game.entity.*`.
-
 ### Etapa 101/275 — Núcleo da Game Engine
 
 Iniciada a Fase 10 com o núcleo da Game Engine. O módulo agora mantém configuração persistente por projeto, suporta modo 2D/3D, cenas e entidades, fornece status agregado do engine e expõe comandos pelo AI Bridge. A ordem do manifesto também foi corrigida para carregar Project Manager e Virtual FS antes da Game Engine, garantindo que suas dependências estejam disponíveis.
